@@ -1,8 +1,0 @@
-﻿  main.cpp
-c:\users\nothing\documents\visual studio 2017\projects\nothingrenderer\nothingrenderer\camera.h(73): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-c:\users\nothing\documents\visual studio 2017\projects\nothingrenderer\nothingrenderer\main.cpp(71): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
-c:\users\nothing\documents\visual studio 2017\projects\nothingrenderer\nothingrenderer\main.cpp(181): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
-c:\users\nothing\documents\visual studio 2017\projects\nothingrenderer\nothingrenderer\main.cpp(183): warning C4305: 'argument': truncation from 'double' to 'float'
-c:\users\nothing\documents\visual studio 2017\projects\nothingrenderer\nothingrenderer\main.cpp(187): warning C4305: 'argument': truncation from 'double' to 'float'
-  NothingRenderer.vcxproj -> C:\Users\Nothing\documents\visual studio 2017\Projects\NothingRenderer\Debug\NothingRenderer.exe
-  NothingRenderer.vcxproj -> C:\Users\Nothing\documents\visual studio 2017\Projects\NothingRenderer\Debug\NothingRenderer.pdb (Partial PDB)
