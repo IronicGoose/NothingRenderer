@@ -46,7 +46,7 @@ public:
 		GenerateTransformMatrix(obj->position, ma);   
 		for (int i = 0; i < obj->vertCount; i++) {  
 			matrixdot(verts[i].position,&obj->v[i], ma);
-			cout << verts[i].position->x << verts[i].position->y << verts[i].position->z	;
+			cout << verts[i].position->x <<" "<< verts[i].position->y << " " <<verts[i].position->z <<endl	;
 		}
 		return verts;
 	} 

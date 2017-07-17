@@ -29,15 +29,17 @@ public :
 		direction = normalized(direction,dir);
 		GenerateCenterPoint();
 	}
+	void GetClipSpaceWidthHeight(VECTOR2 *res ) {
+		res->y = tan(fov* 3.141592653 / 360) *nearZ;
+		res->x = (width / height)* res->y; 
+	}
 	Camera() {
 		position = new VECTOR4();
-		direction = new VECTOR4();
-		originalPoint = new VECTOR4();
+		direction = new VECTOR4(); 
 		centerPoint = new VECTOR4();
 
-		position->x = 0; position->y = 0; position->z = -5; position->w = 0;
-		direction->x = 0; direction->y = 0; direction->z = 1; direction->w = 1;
-		originalPoint->x = 0; originalPoint->y = 0; originalPoint->z = 0; 
+		position->x = 0; position->y =1 ; position->z = -3; position->w = 1;
+		direction->x = 0; direction->y = 0; direction->z = 1; direction->w = 0; 
 
 		fov = 60;
 		nearZ = 0.3f;
@@ -46,7 +48,7 @@ public :
 
 	void GetCamCoordinateTransformVert(VERTS* vs) { 
 		MATRIX4x4* ma = new MATRIX4x4();
-		GenerateTransformMatrix(vs->verts->position, ma);
+		GenerateCamMatrix(position, ma);
 		for (int i = 0; i < vs->vertCount; i++) {
 			matrixdot(vs->verts[i].position, vs->verts[i].position, ma);
 			cout << vs->verts[i].position->x << "  " << vs->verts[i].position->y << "  " << vs->verts[i].position->z << endl; 
@@ -55,16 +57,37 @@ public :
 
 	void GetClipSpaceTransfromVert(VERTS* vs) {
 		MATRIX4x4 * ma = new MATRIX4x4();
-		GenerateClipTransformMatrix(ma); 
+		GenerateClipTransformMatrix(ma);
+		float halfw = width / 2, halfh = height / 2;
 		for (int i = 0; i < vs->vertCount; i++) { 
 			matrixdot(vs->verts[i].position, vs->verts[i].position, ma);
-			vs->verts[i].position->x = vs->verts[i].position->x / vs->verts[i].position->w;
-			vs->verts[i].position->y = vs->verts[i].position->y / vs->verts[i].position->w;
+			cout << vs->verts[i].position->x << "  " << vs->verts[i].position->y << "  " << vs->verts[i].position->z << endl;
+			cout << vs->verts[i].position->w << endl;
+			vs->verts[i].position->x =  (int)halfw* (1+ vs->verts[i].position->x / vs->verts[i].position->w );
+			vs->verts[i].position->y =  (int)halfh* (1+  vs->verts[i].position->y / vs->verts[i].position->w );
 			vs->verts[i].position->z = vs->verts[i].position->z / vs->verts[i].position->w;
 			vs->verts[i].position->w = 1;
 			cout << vs->verts[i].position->x <<"  "<< vs->verts[i].position->y << "  "<<vs->verts[i].position->z << endl;
-			cout << vs->verts[i].position->w << endl;
 		} 
+	}
+	void GetUV(VERTS * vs) {
+		VECTOR2 nearWH ;
+		GetClipSpaceWidthHeight(&nearWH);
+		cout << "near plane  " << nearWH.x << " " << nearWH.y<<endl;
+		for (int i = 0; i < vs->vertCount; i++) { 
+			cout << vs->verts[i].position->x << " " << vs->verts[i].position->y << endl;
+		}
+
+
+	}
+	void GenerateCamMatrix(VECTOR4* pos, MATRIX4x4* ma) {
+		ma->val[3][0] = -pos->x;
+		ma->val[3][1] = -pos->y;
+		ma->val[3][2] = -pos->z;
+		ma->val[3][3] = 1;
+		ma->val[2][2] = 1;
+		ma->val[1][1] = 1;
+		ma->val[0][0] = 1;
 	}
 	MATRIX4x4* GenerateClipTransformMatrix(MATRIX4x4 * res){
 	//	res->val[0][0] =
@@ -79,4 +102,5 @@ public :
 		res->val[2][3] = 1;
 		return res;
 	}
+
 }; 

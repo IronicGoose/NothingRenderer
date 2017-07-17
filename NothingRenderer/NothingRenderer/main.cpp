@@ -19,6 +19,7 @@ bool isCreated = false;
 
 VECTOR4* penCol;
 VECTOR4* backgroundColor;
+
 void SetPenColor(VECTOR4* col) {
 	if (penCol == nullptr) {
 		penCol = new VECTOR4();
@@ -45,17 +46,23 @@ void CreateBuffer() {
 	} 
 }
 
-void ClearColBuffer() {
+void ClearColBuffer() { 
 
 	for (int i = 0; i < width * height; i++) {
 		copy(backgroundColor, &colorBuffer[i]);
 	}
 }
-void DrawPoint( int x, int y,VECTOR4* col) {
+
+void DrawPoint( int x, int y,VECTOR4* col = NULL) {
+	if (col == NULL)
+		col = penCol;
 	int index = y* width + x;
 	copy(col, &colorBuffer[index]);
 }
-void Drawline(VECTOR2* from , VECTOR2* to ,VECTOR4 * col) {
+
+void Drawline(VECTOR2* from , VECTOR2* to ,VECTOR4 * col = NULL) {
+	if (col == NULL)
+		col = penCol;
 	float step = 0.5f; 
 	VECTOR2 del,drawPoint;
 	del.x = to->x - from->x; 
@@ -75,6 +82,7 @@ void Drawline(VECTOR2* from , VECTOR2* to ,VECTOR4 * col) {
 	
 
 }
+
 // main loop for opengl
 //read a cube file and create a cube with basic info 
 GEOMETRY* ReadCubeFile(string filename) { 
@@ -139,7 +147,7 @@ void RenderACube() {
 	VECTOR4 * pos = new VECTOR4(0, 0, 4, 1);
 	GEOMETRY* cube = CreateCube(pos);
 	delete pos;
-	eye.GenerateCenterPoint();  
+//	eye.GenerateCenterPoint();  
 	VERT* vert = new VERT[cube->vertCount];
 	VERTS* verts = new VERTS();
 	verts->verts = vert;
@@ -147,7 +155,7 @@ void RenderACube() {
 	holder.GetVertsWorldCoor(verts->verts,cube);
 	eye.GetCamCoordinateTransformVert(verts);
 	eye.GetClipSpaceTransfromVert(verts);
-	
+	eye.GetUV(verts);
 
 }  
 
@@ -162,7 +170,7 @@ void RenderWindow()
 		for (int y = 0; y < height; ++y) {
 			int index = y* width + x;
 			glColor3f(colorBuffer[index].x , colorBuffer[index].y , colorBuffer[index].z);
-			glVertex2i(x, y);
+			glVertex2i(x, height - y);
 		}
 	}
 	glEnd();
