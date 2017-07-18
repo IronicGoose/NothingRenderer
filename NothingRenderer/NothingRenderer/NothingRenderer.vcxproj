@@ -24,6 +24,7 @@
   <ItemGroup>
     <ClInclude Include="camera.h" />
     <ClInclude Include="ObjectInfo.h" />
+    <ClInclude Include="PipelineController.h" />
     <ClInclude Include="Vector.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

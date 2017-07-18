@@ -57,6 +57,7 @@ void ClearColBuffer() {
 }
 
 void DrawPoint( int x, int y,VECTOR4* col  ) { 
+	
 	int index = y* width + x;
 	if (index >= width * height)
 	{
@@ -71,6 +72,16 @@ void DrawPoint(int x, int y ) {
 		cerr << "draw point out of scream" << endl;
 	}
 	copy(penCol, &colorBuffer[index]);
+}
+bool ValidScreamPos(VECTOR4 * pos) {
+	if (pos->x >= 0 && pos->x < width && pos->y >= 0 && pos->y < height)
+		return true;
+	return false;
+}
+bool ValidScreamPos(int x ,int y) {
+	if (x >= 0 && x < width && y >= 0 && y < height)
+		return true;
+	return false;
 }
 
 void Drawline(VECTOR2* from , VECTOR2* to ,VECTOR4 * col = NULL) {
@@ -165,7 +176,7 @@ void Swap(VERT * a, VERT * b) {
 float GetDepth(int x, int y) {
 
 	int index = y* width + x; 
-	//return 99;
+//	return 99;
 	return ZBuffer[index];
 }
 void WriteDepth(float depth, int x, int y) {
@@ -192,7 +203,7 @@ void DrawTriangle3(VERT* A, VERT* B, VERT * C,bool recurse = true) {
 		DrawTriangle3(C, B, A,false); 
 	}
 
-	float step = 0.5,dis = 0.5f;
+	float step = 0.2,dis = 0.2f;
 	VECTOR2 delAB,delAC;
 	VECTOR4	drawPointAB,drawPointAC;
 	delAB.x = B->position->x - A->position->x;
@@ -232,14 +243,15 @@ void DrawTriangle3(VERT* A, VERT* B, VERT * C,bool recurse = true) {
 			P.x = i; P.y = j;
 			SampleColor(A->position, B->position, C->position, &P, &res);
 			depth = A->position->z * res.x + B->position->z * res.y + C->position->z * res.z;
-			if (depth > GetDepth(i, j)) { 
+			if (depth > GetDepth(i, j) && ValidScreamPos(i,j)) { 
 				WriteDepth(depth, i, j);
 				Col.x = A->color->x * res.x + B->color->x * res.y + C->color->x * res.z;
 				Col.y = A->color->y * res.x + B->color->y * res.y + C->color->y * res.z;
 				Col.z = A->color->z * res.x + B->color->z * res.y + C->color->z * res.z;
-
+				
 				DrawPoint(i, j,&Col);
 			}
+
 			continue;
 		}
 		while(sqdistance2D(&drawPointAC, C->position) > dis)
@@ -253,7 +265,7 @@ void DrawTriangle3(VERT* A, VERT* B, VERT * C,bool recurse = true) {
 				P.x = k; P.y = w;
 				SampleColor(A->position, B->position, C->position, &P, &res);
 				depth = A->position->z * res.x + B->position->z * res.y + C->position->z * res.z;
-				if (depth > GetDepth(k, w)) {
+				if (depth > GetDepth(k, w) && ValidScreamPos(k,w)) {
 					WriteDepth(depth, k, w);
 					Col.x = A->color->x * res.x + B->color->x * res.y + C->color->x * res.z;
 					Col.y = A->color->y * res.x + B->color->y * res.y + C->color->y * res.z;
@@ -268,7 +280,7 @@ void DrawTriangle3(VERT* A, VERT* B, VERT * C,bool recurse = true) {
 				P.x = x + ii;
 				SampleColor(A->position, B->position, C->position, &P, &res);
 				depth = A->position->z * res.x + B->position->z * res.y + C->position->z * res.z;
-				if (depth > GetDepth(x+ii, y)) {
+				if (depth > GetDepth(x+ii, y) && ValidScreamPos(x+ii,y)) {
 					WriteDepth(depth, x + ii, y);
 					Col.x = A->color->x * res.x + B->color->x * res.y + C->color->x * res.z;
 					Col.y = A->color->y * res.x + B->color->y * res.y + C->color->y * res.z;
@@ -592,8 +604,7 @@ GEOMETRY* ReadCubeFile(string filename) {
 	string line;
 	ifstream objFile(filename, ifstream::in);
 	GEOMETRY* cube = new GEOMETRY();
-	  
-	int vertMax = 8;
+	   
 	int vertCount = 0;
 	cube->faceCount = 0;
 	while (getline(objFile, line)) {  
@@ -623,8 +634,7 @@ GEOMETRY* ReadCubeFile(string filename) {
 		}
 	}  
 	cube->vertCount = vertCount;
-	objFile.close();
-	 
+	objFile.close(); 
  	return cube;
 }
 
@@ -632,11 +642,8 @@ GEOMETRY* ReadCubeFile(string filename) {
 
 //create a cube and set with a location ,add into objectinfo 
 GEOMETRY* CreateCube(VECTOR4* pos	) {
-	GEOMETRY * cube = ReadCubeFile("./Objects/cube.obj");
-	cube->position->x = pos->x;
-	cube->position->y = pos->y;
-	cube->position->z = pos->z;
-	cube->position->w = pos->w;
+	GEOMETRY * cube = ReadCubeFile("./Objects/cube.obj"); 
+	cube->name = "cube";
 	holder.RegistCubeInfo(cube);
 	return cube;
 	
@@ -661,42 +668,176 @@ VECTOR4* EyePlaneIntersection(VECTOR4* worldVertex) {
 }
 
 
+/*
+void ClipOne(VERT* A , VERT* B ,VERT* C,VERT* D , VERT* E ) {
+	float kAB,kAC;
+	D->position->x = -1; D->position->y = -1; E->position->x = -1; E->position->y = -1;
+	if (A->position->x < 0 ) {
+		if (A->position->y < 0) {
+			// clip using line x = 0
+			if (!ValidScreamPos(D->position)) { 
+				kAB = (A->position->y - B->position->y) / (A->position->x - B->position->x);
+				D->position->x = 0; D->position->y = (int)(A->position->y - A->position->x * kAB);
+			}
+			if (!ValidScreamPos(E->position)) {
+				kAC = (A->position->y - C->position->y) / (A->position->x - C->position->x);
+				E->position->x = 0; E->position->y = (int)(A->position->y - A->position->x * kAC); 
+			}
+			// clip using line y = 0 
+			//if D does not hava valid value 
+			if (!ValidScreamPos(D->position)) {
+				kAB = (A->position->x - B->position->x) / (A->position->y - B->position->y);
+				D->position->y = 0; D->position->x = (int)(A->position->x - A->position->y * kAB); 
+			}
+			if (!ValidScreamPos(E->position)) { 
+				kAC = (A->position->x - C->position->x) / (A->position->y - C->position->y);
+				E->position->y = 0; E->position->x = (int)(A->position->x - A->position->y * kAC);
+			}  
+		}
+		else if (A->position->y >= height) {
+			// clip using line x = 0
+			if (!ValidScreamPos(D->position)) {
+				kAB = (A->position->y - B->position->y) / (A->position->x - B->position->x);
+				D->position->x = 0; D->position->y = (int)(A->position->y - A->position->x * kAB);
+			}
+			if (!ValidScreamPos(E->position)) {
+				kAC = (A->position->y - C->position->y) / (A->position->x - C->position->x);
+				E->position->x = 0; E->position->y = (int)(A->position->y - A->position->x * kAC);
+			}
+			// clip using line y = height -1 
+			//if D does not hava valid value 
+			if (!ValidScreamPos(D->position)) {
+				kAB = (A->position->x - B->position->x) / (A->position->y - B->position->y);
+				D->position->y = height-1; D->position->x = (int)(A->position->x + (height-1- A->position->y )* kAB);
+			}
+			if (!ValidScreamPos(E->position)) {
+				kAC = (A->position->x - C->position->x) / (A->position->y - C->position->y);
+				E->position->y = height-1; E->position->x = (int)(A->position->x + (height - 1 - A->position->y)* kAC);
+			}
+
+		}
+		else { 
+			// clip using line x = 0
+			if (!ValidScreamPos(D->position)) {
+				kAB = (A->position->y - B->position->y) / (A->position->x - B->position->x);
+				D->position->x = 0; D->position->y = (int)(A->position->y - A->position->x * kAB);
+			}
+			if (!ValidScreamPos(E->position)) {
+				kAC = (A->position->y - C->position->y) / (A->position->x - C->position->x);
+				E->position->x = 0; E->position->y = (int)(A->position->y - A->position->x * kAC);
+			}
+		}
+
+	}
+	else if( A->position->x >= width) {
+		
+		if (A->position->y < 0) {
+			// clip using line x = width -1
+			if (!ValidScreamPos(D->position)) { 
+				kAB = (A->position->y - B->position->y) / (A->position->x - B->position->x);
+				D->position->x = width -1; D->position->y = (int)(A->position->y+( width-1- A->position->x) * kAB);
+			}
+			if (!ValidScreamPos(E->position)) {
+				kAC = (A->position->y - C->position->y) / (A->position->x - C->position->x);
+				E->position->x = width - 1; E->position->y = (int)(A->position->y + (width - 1 - A->position->x) * kAC);
+			}
+			// clip using line y = 0 
+			//if D does not hava valid value 
+			if (!ValidScreamPos(D->position)) {
+				kAB = (A->position->x - B->position->x) / (A->position->y - B->position->y);
+				D->position->y = 0; D->position->x = (int)(A->position->x - A->position->y * kAB); 
+			}
+			if (!ValidScreamPos(E->position)) { 
+				kAC = (A->position->x - C->position->x) / (A->position->y - C->position->y);
+				E->position->y = 0; E->position->x = (int)(A->position->x - A->position->y * kAC);
+			}  
+		}
+		else if (A->position->y >= height) {
+			// clip using line x = width -1
+			if (!ValidScreamPos(D->position)) {
+				kAB = (A->position->y - B->position->y) / (A->position->x - B->position->x);
+				D->position->x = width - 1; D->position->y = (int)(A->position->y + (width - 1 - A->position->x) * kAB);
+			}
+			if (!ValidScreamPos(E->position)) {
+				kAC = (A->position->y - C->position->y) / (A->position->x - C->position->x);
+				E->position->x = width - 1; E->position->y = (int)(A->position->y + (width - 1 - A->position->x) * kAC);
+			}
+			// clip using line y = height -1 
+			//if D does not hava valid value 
+			if (!ValidScreamPos(D->position)) {
+				kAB = (A->position->x - B->position->x) / (A->position->y - B->position->y);
+				D->position->y = height-1; D->position->x = (int)(A->position->x + (height-1- A->position->y )* kAB);
+			}
+			if (!ValidScreamPos(E->position)) {
+				kAC = (A->position->x - C->position->x) / (A->position->y - C->position->y);
+				E->position->y = height-1; E->position->x = (int)(A->position->x - (height - 1 - A->position->y)* kAC);
+			}
+
+		}
+		else { 
+
+			// clip using line x = width -1
+			if (!ValidScreamPos(D->position)) {
+				kAB = (A->position->y - B->position->y) / (A->position->x - B->position->x);
+				D->position->x = width - 1; D->position->y = (int)(A->position->y + (width - 1 - A->position->x) * kAB);
+			}
+			if (!ValidScreamPos(E->position)) {
+				kAC = (A->position->y - C->position->y) / (A->position->x - C->position->x);
+				E->position->x = width - 1; E->position->y = (int)(A->position->y + (width - 1 - A->position->x) * kAC);
+			}
+		}
+
+	}
+}
+*/
 
 void RenderACube() {
-	VECTOR4 * pos = new VECTOR4(0, 0, 4, 1);
+	VECTOR4 * pos = new VECTOR4(5, 0, 4, 1);
 	GEOMETRY* cube = CreateCube(pos); 
-	delete pos;
 //	eye.GenerateCenterPoint();  
 
 
 
 
 	VERT* vert = new VERT[cube->vertCount];
-	VERTS* verts = new VERTS();
-	verts->verts = vert;
-	verts->vertCount = cube->vertCount;
+	Object* object = new Object();
+	object->verts = vert;
+	object->vertCount = cube->vertCount;
+	object->objectName = "Cube01";
+	object->prefab = cube;
+	copy(pos, object->position);
+	delete pos;
+
+
 	MATRIX4x4 rot;
-	VECTOR4 n(0, 1, 1);
-	GenerateRotateMatrix(n, 90, &rot);
-	holder.GetVertsWorldSpace(verts->verts,cube,&rot);
-	eye.GetCamCoordinateTransformVert(verts);
-	eye.GetClipSpaceTransfromVert(verts);
-	eye.GetUV(verts); 
+	VECTOR4 n(0, 1, 1);  
+
+
+	GenerateRotateMatrix(n, 40, &rot); 
+	holder.GetVertsWorldSpace(object,&rot);
+	eye.GetCamCoordinateTransformVert(object);
+	eye.GetClipSpaceTransfromVert(object);
+	eye.GetUV(object);
 	VECTOR2 va, vb, vc;
 	VECTOR4 col(0.1, 0.1, 0.1, 1);
 	int a, b, c;
 	for (int i = 0; i < cube->faceCount; i++) {
 		a = cube->f[i]->a.x -1;
 		b = cube->f[i]->b.x -1;
-		c = cube->f[i]->c.x -1;
-		/*va.x = verts->verts[a].position->x; va.y = verts->verts[a].position->y;
-		vb.x = verts->verts[b].position->x; vb.y = verts->verts[b].position->y;
-		vc.x = verts->verts[c].position->x, vc.y = verts->verts[c].position->y; 
+		c = cube->f[i]->c.x -1; 
+		/*
+		va.x = object->verts[a].position->x; va.y = object->verts[a].position->y;
+		vb.x = object->verts[b].position->x; vb.y = object->verts[b].position->y;
+		vc.x = object->verts[c].position->x, vc.y = object->verts[c].position->y;
 		*/
-		DrawTriangle3(&verts->verts[a], &verts->verts[b], &verts->verts[c]); 
+		VERT* A = &object->verts[a], *B = &object->verts[b], *C = &object->verts[c];
+
+		DrawTriangle3(&object->verts[a], &object->verts[b], &object->verts[c]);
 		cout << a; 
 
 	}
+
+
 	a = cube->f[1]->a.x - 1;
 	b = cube->f[1]->b.x - 1;
 	c = cube->f[1]->c.x - 1;

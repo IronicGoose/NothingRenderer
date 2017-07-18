@@ -46,7 +46,7 @@ public :
 		farZ = 4000;
 	}
 
-	void GetCamCoordinateTransformVert(VERTS* vs) { 
+	void GetCamCoordinateTransformVert(Object* vs) { 
 		MATRIX4x4* ma = new MATRIX4x4();
 		GenerateCamMatrix(position, ma);
 		for (int i = 0; i < vs->vertCount; i++) {
@@ -55,7 +55,7 @@ public :
 		} 
 	}
 
-	void GetClipSpaceTransfromVert(VERTS* vs) {
+	void GetClipSpaceTransfromVert(Object* vs) {
 		MATRIX4x4 * ma = new MATRIX4x4();
 		GenerateClipTransformMatrix(ma);
 		float halfw = width / 2, halfh = height / 2;
@@ -70,7 +70,7 @@ public :
 			cout << vs->verts[i].position->x <<"  "<< vs->verts[i].position->y << "  "<<vs->verts[i].position->z << endl;
 		} 
 	}
-	void GetUV(VERTS * vs) {
+	void GetUV(Object * vs) {
 		VECTOR2 nearWH ;
 		GetClipSpaceWidthHeight(&nearWH);
 		cout << "near plane  " << nearWH.x << " " << nearWH.y<<endl;
