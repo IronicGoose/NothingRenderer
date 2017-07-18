@@ -26,7 +26,7 @@ public :
 		height = hei;
 	}
 	void SetDirection(VECTOR4* dir) {
-		direction = normalized(direction,dir);
+		direction = normalizedVector3(direction,dir);
 		GenerateCenterPoint();
 	}
 	void GetClipSpaceWidthHeight(VECTOR2 *res ) {
@@ -89,17 +89,15 @@ public :
 		ma->val[1][1] = 1;
 		ma->val[0][0] = 1;
 	}
-	MATRIX4x4* GenerateClipTransformMatrix(MATRIX4x4 * res){
-	//	res->val[0][0] =
+	MATRIX4x4* GenerateClipTransformMatrix(MATRIX4x4 * res){ 
 		float ar = width / height;
-
 		float tanRes = 1/  tan( fov* 3.141592653 / 360);
 	
 		res->val[0][0] = tanRes / ar;
 		res->val[1][1] = tanRes;
 		res->val[2][2] = (-nearZ - farZ) / (nearZ - farZ);
 		res->val[3][2] = 2 * farZ*nearZ / (nearZ - farZ);
-		res->val[2][3] = 1;
+		res->val[2][3] = -1;
 		return res;
 	}
 
