@@ -10,80 +10,14 @@ using namespace std;
 #include <GL/GLUT.h> 
 #include"ObjectInfo.h" 
 #include"camera.h"
-int width, height;
-ObjectHolder holder;
-Camera eye;
-VECTOR4* colorBuffer;
-float* ZBuffer;
-bool isCreated = false;
+#include"PipelineController.h"
+int width, height;   
+
+PipelineController pipeline;
+ObjectHolder * holder;
 
 
-VECTOR4* penCol;
-VECTOR4* backgroundColor;
-
-void SetPenColor(VECTOR4* col) {
-	if (penCol == nullptr) {
-		penCol = new VECTOR4();
-		backgroundColor = new VECTOR4;
-		copy(col, backgroundColor); 
-	} 
-	penCol->x = col->x; penCol->y = col->y;
-	penCol->z = col->z; penCol->w = col->w;
-	return;
-
-} 
-
-
-
-void CreateBuffer() {
-	if (penCol == NULL) {
-		cerr << "pen color not set " << endl;
-		return;
-	}
-
-	colorBuffer = new VECTOR4[width * height];
-	ZBuffer = new float[width * height];
-	for (int i = 0; i < width * height; i++) {
-		copy(penCol, &colorBuffer[i]);
-		ZBuffer[i] = -99;
-	} 
-}
-
-void ClearColBuffer() { 
-
-	for (int i = 0; i < width * height; i++) {
-		copy(backgroundColor, &colorBuffer[i]);
-	}
-}
-
-void DrawPoint( int x, int y,VECTOR4* col  ) { 
-	
-	int index = y* width + x;
-	if (index >= width * height)
-	{
-		cerr << "draw point out of scream" << endl;
-	}
-	copy(col, &colorBuffer[index]); 
-}
-void DrawPoint(int x, int y ) { 
-	int index = y* width + x;
-	if (index >= width * height)
-	{
-		cerr << "draw point out of scream" << endl;
-	}
-	copy(penCol, &colorBuffer[index]);
-}
-bool ValidScreamPos(VECTOR4 * pos) {
-	if (pos->x >= 0 && pos->x < width && pos->y >= 0 && pos->y < height)
-		return true;
-	return false;
-}
-bool ValidScreamPos(int x ,int y) {
-	if (x >= 0 && x < width && y >= 0 && y < height)
-		return true;
-	return false;
-}
-
+/*
 void Drawline(VECTOR2* from , VECTOR2* to ,VECTOR4 * col = NULL) {
 	if (col == NULL)
 		col = penCol;
@@ -100,7 +34,7 @@ void Drawline(VECTOR2* from , VECTOR2* to ,VECTOR4 * col = NULL) {
 		drawPoint.x += del.x; 
 		drawPoint.y += del.y;
 		int i = drawPoint.x, j = drawPoint.y; 
-		DrawPoint(i, j, col); 
+	//	DrawPoint(i, j, col); 
 	}
 	cout << "draw line " << col->x << " " << col->y << " " << col->z << endl;
 	step = 1;//donothing here for a breakpoint 
@@ -137,9 +71,9 @@ void DrawLine2(VECTOR2* from, VECTOR2* to, VECTOR4 * col = NULL) {
 		ystep = -1; 
 	for (int i = 0; x0 + i < x1; i++) {
 		if (steep)
-			DrawPoint(y, x0 + i);
+	//		DrawPoint(y, x0 + i);
 		else
-			DrawPoint(x0 + i, y);
+	//		DrawPoint(x0 + i, y);
 		error = error - deltay;
 		if (error < 0)
 		{
@@ -149,154 +83,8 @@ void DrawLine2(VECTOR2* from, VECTOR2* to, VECTOR4 * col = NULL) {
 	}
 
 }
-
-float TriangleArea(int x0,int y0, int x1 ,int y1) {
-	return abs(( (float)(x0 *y1  - x1 * y0 ))   /2 ) ; 
-}
-
-void SampleColor(VECTOR4* A, VECTOR4 * B, VECTOR4* C,VECTOR4 * P,VECTOR4* res) { 
-	float a, b, c,total;
-	c = TriangleArea(A->x - P->x, A->y - P->y, B->x - P->x, B->y - P->y);
-	b = TriangleArea(A->x - P->x, A->y - P->y, C->x - P->x, C->y - P->y);
-	a = TriangleArea(B->x - P->x, B->y - P->y, C->x - P->x, C->y - P->y);
-	total = a + b + c;
-	a = a / total;
-	b = b / total;
-	c = c / total;
-	res->x = a ;
-	res->y = b;
-	res->z = c; 
-}
-
-void Swap(VERT * a, VERT * b) {
-	VERT * temp = a;
-	a = b;
-	b = temp;
-}
-float GetDepth(int x, int y) {
-
-	int index = y* width + x; 
-//	return 99;
-	return ZBuffer[index];
-}
-void WriteDepth(float depth, int x, int y) {
-	int index = y* width + x;
-	ZBuffer[index] = depth; 
-} 
-void DrawTriangle3(VERT* A, VERT* B, VERT * C,bool recurse = true) {
-
-	if ((A->position->y == B->position->y|| A->position->y == C->position->y)) {
-		if (A->position->y == B->position->y) {
-			DrawTriangle3(C, B, A);
-			return;
-		}
-		if (A->position->y == C->position->y) {
-			DrawTriangle3(B, C, A);
-			return;
-		}
-	}
-	if (B->position->y == C->position->y)
-		recurse = false;
-	if (recurse) {
-		recurse = false;
-		DrawTriangle3(B, C, A,false);
-		DrawTriangle3(C, B, A,false); 
-	}
-
-	float step = 0.2,dis = 0.2f;
-	VECTOR2 delAB,delAC;
-	VECTOR4	drawPointAB,drawPointAC;
-	delAB.x = B->position->x - A->position->x;
-	delAB.y = B->position->y - A->position->y;
-
-	delAC.x = C->position->x - A->position->x;
-	delAC.y = C->position->y - A->position->y;
-
-
-	drawPointAB.x = A->position->x; drawPointAB.y = A->position->y;
-	drawPointAC.x = A->position->x; drawPointAC.y = A->position->y;
-
-	normalized(&delAB); 
-	normalized(&delAC);
-
-	delAB.x *= step;
-	delAB.y *= step;
-	delAC.x *= step;
-	delAC.y *= step;
-	int y = A->position->y;
-	int dir = 0;
-	if (A->position->y - B->position->y > 0) {
-		dir = -1;
-	}
-	else
-		dir = 1;
-	y+= dir;
-	VECTOR4 res, P, Col;
-	float depth = -99;
-	while (sqdistance2D(&drawPointAB, B->position) > dis)
-	{
-		drawPointAB.x += delAB.x;
-		drawPointAB.y += delAB.y;
-		int i = drawPointAB.x, j = drawPointAB.y;
-		if (j != y) {
-			//draw point
-			P.x = i; P.y = j;
-			SampleColor(A->position, B->position, C->position, &P, &res);
-			depth = A->position->z * res.x + B->position->z * res.y + C->position->z * res.z;
-			if (depth > GetDepth(i, j) && ValidScreamPos(i,j)) { 
-				WriteDepth(depth, i, j);
-				Col.x = A->color->x * res.x + B->color->x * res.y + C->color->x * res.z;
-				Col.y = A->color->y * res.x + B->color->y * res.y + C->color->y * res.z;
-				Col.z = A->color->z * res.x + B->color->z * res.y + C->color->z * res.z;
-				
-				DrawPoint(i, j,&Col);
-			}
-
-			continue;
-		}
-		while(sqdistance2D(&drawPointAC, C->position) > dis)
-		{ 
-			drawPointAC.x += delAC.x;
-			drawPointAC.y += delAC.y;
-			int k = drawPointAC.x, w = drawPointAC.y;
-			if (w != y)
-			{
-				//draw point
-				P.x = k; P.y = w;
-				SampleColor(A->position, B->position, C->position, &P, &res);
-				depth = A->position->z * res.x + B->position->z * res.y + C->position->z * res.z;
-				if (depth > GetDepth(k, w) && ValidScreamPos(k,w)) {
-					WriteDepth(depth, k, w);
-					Col.x = A->color->x * res.x + B->color->x * res.y + C->color->x * res.z;
-					Col.y = A->color->y * res.x + B->color->y * res.y + C->color->y * res.z;
-					Col.z = A->color->z * res.x + B->color->z * res.y + C->color->z * res.z;
-					DrawPoint(k, w,&Col);
-				}
-				continue;
-			}
-			int x = min(i, k), xm = max(i, k);
-			P.y = y;
-			for (int ii = 0; x + ii < xm; ii++) {
-				P.x = x + ii;
-				SampleColor(A->position, B->position, C->position, &P, &res);
-				depth = A->position->z * res.x + B->position->z * res.y + C->position->z * res.z;
-				if (depth > GetDepth(x+ii, y) && ValidScreamPos(x+ii,y)) {
-					WriteDepth(depth, x + ii, y);
-					Col.x = A->color->x * res.x + B->color->x * res.y + C->color->x * res.z;
-					Col.y = A->color->y * res.x + B->color->y * res.y + C->color->y * res.z;
-					Col.z = A->color->z * res.x + B->color->z * res.y + C->color->z * res.z;
-					//calculate Z  value in this position
-					DrawPoint(x + ii, y, &Col);
-				}
-			} 
-			y += dir; 
-			break; 
-		}
-	}
-
-
-
-}
+*/
+   
 
 
 /*
@@ -576,80 +364,11 @@ void DrawTriangle(VECTOR4* A, VECTOR4* B, VECTOR4 * C = NULL) {
 
   
 // main loop for opengl
-//read a cube file and create a cube with basic info 
-void splitObjString(const string& s,VECTOR4 * out ) {
-
-	int i = 0, j = 0;
-	int count = 0;
-	int res[3];
-	for (int i = 0; s[i] != '\0';i++) {
-
-		for (j = i; s[j] != '\0'; j++) {
-			if (s[j] == '/')
-			{
-				break;
-			}
-		} 
-		res[count++] = stoi(s.substr(i, j - i + 1));
-		i = j;
-		if (s[i] == '\0')
-			break;
-	}
-	out->x = res[0];
-	out->y = res[1];
-	out->z = res[2];
-}
-
-GEOMETRY* ReadCubeFile(string filename) { 
-	string line;
-	ifstream objFile(filename, ifstream::in);
-	GEOMETRY* cube = new GEOMETRY();
-	   
-	int vertCount = 0;
-	cube->faceCount = 0;
-	while (getline(objFile, line)) {  
-		stringstream ss(line);  
-		string token;
-		ss >> token;
-		// read vertex here 
-		if (token == "v") { 
-			VECTOR4* vec = new VECTOR4();
-			ss >> vec->x >> vec->y >> vec->z;
-			vec->w = 1; // make it a be  point 
-			cube->v.push_back(vec);
-			vertCount++;
-		}
-		if (token == "f") {
-			FACEINFO * face = new FACEINFO();
-			string temp;
-			ss >> temp;
-			splitObjString(temp, &face->a);
-			ss >> temp;
-			splitObjString(temp, &face->b);
-			ss >> temp;
-			splitObjString(temp, &face->c);
-			cout << temp;
-			cube->f.push_back(face);
-			cube->faceCount++;
-		}
-	}  
-	cube->vertCount = vertCount;
-	objFile.close(); 
- 	return cube;
-}
+//read a cube file and create a cube with basic info   
 
 
-
-//create a cube and set with a location ,add into objectinfo 
-GEOMETRY* CreateCube(VECTOR4* pos	) {
-	GEOMETRY * cube = ReadCubeFile("./Objects/cube.obj"); 
-	cube->name = "cube";
-	holder.RegistCubeInfo(cube);
-	return cube;
-	
-}
-
-
+//create a cube and set with a location ,add into objectinfo  
+/*
 VECTOR4* EyePlaneIntersection(VECTOR4* worldVertex) {  
 	float d; 
 	float denominator, fraction;  
@@ -666,7 +385,7 @@ VECTOR4* EyePlaneIntersection(VECTOR4* worldVertex) {
 	dot(res,eye.position, d);
 	return res;
 }
-
+*/
 
 /*
 void ClipOne(VERT* A , VERT* B ,VERT* C,VERT* D , VERT* E ) {
@@ -792,79 +511,55 @@ void ClipOne(VERT* A , VERT* B ,VERT* C,VERT* D , VERT* E ) {
 */
 
 void RenderACube() {
-	VECTOR4 * pos = new VECTOR4(5, 0, 4, 1);
-	GEOMETRY* cube = CreateCube(pos); 
+	VECTOR4  pos (5, 0, 4, 1); 
 //	eye.GenerateCenterPoint();  
-
-
-
-
-	VERT* vert = new VERT[cube->vertCount];
-	Object* object = new Object();
-	object->verts = vert;
-	object->vertCount = cube->vertCount;
-	object->objectName = "Cube01";
-	object->prefab = cube;
-	copy(pos, object->position);
-	delete pos;
-
-
-	MATRIX4x4 rot;
-	VECTOR4 n(0, 1, 1);  
-
-
-	GenerateRotateMatrix(n, 40, &rot); 
-	holder.GetVertsWorldSpace(object,&rot);
-	eye.GetCamCoordinateTransformVert(object);
-	eye.GetClipSpaceTransfromVert(object);
-	eye.GetUV(object);
-	VECTOR2 va, vb, vc;
-	VECTOR4 col(0.1, 0.1, 0.1, 1);
-	int a, b, c;
-	for (int i = 0; i < cube->faceCount; i++) {
-		a = cube->f[i]->a.x -1;
-		b = cube->f[i]->b.x -1;
-		c = cube->f[i]->c.x -1; 
-		/*
-		va.x = object->verts[a].position->x; va.y = object->verts[a].position->y;
-		vb.x = object->verts[b].position->x; vb.y = object->verts[b].position->y;
-		vc.x = object->verts[c].position->x, vc.y = object->verts[c].position->y;
-		*/
-		VERT* A = &object->verts[a], *B = &object->verts[b], *C = &object->verts[c];
-
-		DrawTriangle3(&object->verts[a], &object->verts[b], &object->verts[c]);
-		cout << a; 
-
-	}
-
-
-	a = cube->f[1]->a.x - 1;
-	b = cube->f[1]->b.x - 1;
-	c = cube->f[1]->c.x - 1;
-	//DrawTriangle3(&verts->verts[a], &verts->verts[b], &verts->verts[c]); 
-
+	Object *object = new Object(); 
+	pipeline.CreateObject("cube001", "cube", &pos);
+	pipeline.RenderAll(); 
+//	pipeline.RenderTarget(*object);
+	
 }  
 
-
-
-void RenderWindow()
-{
+float  t = 0;
+void Mainloop() {
+	t += 3; 
+	if (t > 360)
+		t = 0;
+	Object* ob = pipeline.GetObject("cube001");
+	ob->SetRotation(0, 1, 1, t);
+	VECTOR4 col;
 	glClear(GL_COLOR_BUFFER_BIT);
 	glBegin(GL_POINTS);
 	for (int x = 0; x < width; ++x)
 	{
 		for (int y = 0; y < height; ++y) {
-			int index = y* width + x;
-			glColor3f(colorBuffer[index].x , colorBuffer[index].y , colorBuffer[index].z);
+			col = pipeline.GetBufferColor(x, y);
+			glColor3f(col.x, col.y, col.z);
+			glVertex2i(x, height - y);
+		}
+	}
+	pipeline.RenderAll();
+	glEnd();
+	glFlush();
+}
+void RenderWindow()
+{ 
+	VECTOR4 col;  
+	pipeline.RenderAll();
+	glClear(GL_COLOR_BUFFER_BIT);
+	glBegin(GL_POINTS); 
+	for (int x = 0; x < width; ++x)
+	{
+		for (int y = 0; y < height; ++y) {
+			col = pipeline.GetBufferColor(x, y);
+			glColor3f(col.x, col.y, col.z);
 			glVertex2i(x, height - y);
 		}
 	}
 	glEnd();
 	glFlush();
-	if (!isCreated) {
-		isCreated = true;
-	}
-}
+		 
+} 
 int main(int argc, char ** argv)
 {
 	glutInit(&argc, argv);
@@ -872,26 +567,23 @@ int main(int argc, char ** argv)
 	glutInitWindowPosition(0,0);
 	width = 1500; 
 	height = 1080;
-	eye.SetWidthHeight(width, height);  
+	//eye.SetWidthHeight(width, height);  
 
-	VECTOR4 col(0.953, 0.447, 0.8156, 1);
-	SetPenColor(&col);
-	CreateBuffer();
+	VECTOR4 col(0.953, 0.447, 0.8156, 1); 
 	VECTOR2 from(100, 0), to(0, 245);
 	VECTOR4 lineColor(0.1, 0.1, 0.1, 1);
-
-	SetPenColor(&lineColor);
-	//Drawline(&from, &to, &lineColor);
-	//DrawLine2(&from, &to, &lineColor);
+	 
 
 	glutInitWindowSize(width, height);
 	glutCreateWindow("sth");
 	glClearColor(1.0, 1.0, 1.0, 0.0);
 	glMatrixMode(GL_PROJECTION);
 	gluOrtho2D(0.0, width, 0.0, height);
-	glutDisplayFunc(RenderWindow);
-
+	glutDisplayFunc(RenderWindow);  
+	pipeline.CreateBuffer(width, height);
+	holder = pipeline.GetObjectHolder();
 	RenderACube(); 
-	glutMainLoop(); 
+	glutIdleFunc(Mainloop);
+	glutMainLoop();
 	return 0; 
 }

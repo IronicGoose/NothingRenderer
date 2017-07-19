@@ -50,7 +50,7 @@ namespace VECTOR {
 	float matrixdot(VECTOR4* a, VECTOR4* b) { 
 		return a->x *b->x + a->y * b->y + a->z * b->z + a->w * b->w;
 	}
-	void copy(VECTOR4* from, VECTOR4* to) {
+	void copy(const VECTOR4* from, VECTOR4* to) {
 		to->x = from->x;
 		to->y = from->y;
 		to->z = from->z;
@@ -142,11 +142,7 @@ namespace MATRIX {
 		ma->val[1][1] = 1;
 		ma->val[0][0] = 1;
 	}
-	void GenerateRotateMatrix(VECTOR4 ax, float angle, MATRIX4x4* ma) {
-		float qr = cos(angle * 3.1415926 / 360);
-		float s = sin(angle * 3.1415926 / 360);  
-		ax.x *= s; ax.y *= s; ax.z *= s; ax.w = qr;
-		
+	void GenerateRotateMatrix(VECTOR4& ax,  MATRIX4x4* ma) { 
 		normalizedVector4(&ax);
 		ma->val[0][0] = 1 - 2 *(ax.y * ax.y + ax.z * ax.z);
 		ma->val[1][0] = 2 * (ax.x * ax.y - ax.z * ax.w);

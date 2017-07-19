@@ -51,7 +51,7 @@ public :
 		GenerateCamMatrix(position, ma);
 		for (int i = 0; i < vs->vertCount; i++) {
 			matrixdot(vs->verts[i].position, vs->verts[i].position, ma);
-			cout << vs->verts[i].position->x << "  " << vs->verts[i].position->y << "  " << vs->verts[i].position->z << endl; 
+	//		cout << vs->verts[i].position->x << "  " << vs->verts[i].position->y << "  " << vs->verts[i].position->z << endl; 
 		} 
 	}
 
@@ -61,21 +61,21 @@ public :
 		float halfw = width / 2, halfh = height / 2;
 		for (int i = 0; i < vs->vertCount; i++) { 
 			matrixdot(vs->verts[i].position, vs->verts[i].position, ma);
-			cout << vs->verts[i].position->x << "  " << vs->verts[i].position->y << "  " << vs->verts[i].position->z << endl;
-			cout << vs->verts[i].position->w << endl;
+	//		cout << vs->verts[i].position->x << "  " << vs->verts[i].position->y << "  " << vs->verts[i].position->z << endl;
+	//		cout << vs->verts[i].position->w << endl;
 			vs->verts[i].position->x =  (int)halfw* (1+ vs->verts[i].position->x / vs->verts[i].position->w );
 			vs->verts[i].position->y =  (int)halfh* (1+  vs->verts[i].position->y / vs->verts[i].position->w );
 			vs->verts[i].position->z = vs->verts[i].position->z / vs->verts[i].position->w;
 			vs->verts[i].position->w = 1;
-			cout << vs->verts[i].position->x <<"  "<< vs->verts[i].position->y << "  "<<vs->verts[i].position->z << endl;
+	//		cout << vs->verts[i].position->x <<"  "<< vs->verts[i].position->y << "  "<<vs->verts[i].position->z << endl;
 		} 
 	}
 	void GetUV(Object * vs) {
 		VECTOR2 nearWH ;
 		GetClipSpaceWidthHeight(&nearWH);
-		cout << "near plane  " << nearWH.x << " " << nearWH.y<<endl;
+	//	cout << "near plane  " << nearWH.x << " " << nearWH.y<<endl;
 		for (int i = 0; i < vs->vertCount; i++) { 
-			cout << vs->verts[i].position->x << " " << vs->verts[i].position->y << endl;
+	//		cout << vs->verts[i].position->x << " " << vs->verts[i].position->y << endl;
 		}
 
 
