@@ -18,7 +18,7 @@ public :
 	vector<FACEINFO*> f;
 	int vertCount;
 	int faceCount; 
-
+	int normalCount;
 	GEOMETRY() { 
 	}
 	~GEOMETRY() { 
@@ -35,6 +35,7 @@ public :
 		normal = new VECTOR4();
 		color = new VECTOR4();
 		color->x = 0; color->y = 0; color->z = 0; color->w = 1;
+		normal->w = 0;
 		position->w = 1;
 	}
 };
@@ -51,6 +52,9 @@ public :
 		float s = sin(w * 3.1415926 / 360);
 		rotation->w = qr; rotation->x = x * s; rotation->y = y * s; rotation->z = z *s;
 		normalizedVector4(rotation);
+	}
+	void SetPosition(float x, float y, float z, float w) { 
+		position->x = x; position->y = y; position->z = z; position->w = w;
 	}
 	Object::Object() {
 		position = new VECTOR4();
@@ -77,6 +81,7 @@ public:
 		GEOMETRY* geomery = new GEOMETRY(); 
 		int vertCount = 0;
 		geomery->faceCount = 0;
+		geomery->normalCount = 0;
 		while (getline(objFile, line)) {
 			stringstream ss(line);
 			string token;
@@ -94,6 +99,7 @@ public:
 				ss >> vec->x >> vec->y >> vec->z;
 				vec->w = 0; // make it a be  point 
 				geomery->n.push_back(vec); 
+				geomery->normalCount++;
 
 			}
 			if (token == "f") {
@@ -143,10 +149,10 @@ public:
 	const GEOMETRY&  GetPrefab(string objname) { 
 		auto it = prefabs.begin();
 		while (it != prefabs.end()) {
-			it++;
 			if (it->name == objname) {
 				return *it;// iterator use *iterator to get the value , use & to get the pointer 
-			} 
+			}
+			it++;
 		} 
 		string filePath;
 		if (objname == "cube") {
@@ -182,15 +188,19 @@ public:
 		//	cout<<"Rot" << obj->verts[i].position->x << " " << obj->verts[i].position->y << " " << obj->verts[i].position->z << endl;
 			matrixdot(obj->verts[i].position, obj->verts[i].position, ma);
 		//	cout << obj->verts[i].position->x <<" "<< obj->verts[i].position->y << " " << obj->verts[i].position->z <<endl;
-			if (i % 3 == 0) {
-				obj->verts[i].color->x = 1;
+			/*if (i % 3 == 0) {
+				obj->verts[i].color->x = 1; 
 			}
 			else if (i % 3 == 1) {
 				obj->verts[i].color->y = 1;
 			}
 			else
-				obj->verts[i].color->z = 1;
+				obj->verts[i].color->z = 1;*/
+			obj->verts[i].color->x = 1;
+			obj->verts[i].color->y = 1;
+			obj->verts[i].color->z = 1;
 		}  
+		 
 	} 
 
 	void GetVertsWorldSpace(Object* obj, GEOMETRY* prefab ) {

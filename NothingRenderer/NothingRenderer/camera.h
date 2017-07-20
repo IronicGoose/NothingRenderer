@@ -46,9 +46,12 @@ public :
 		farZ = 4000;
 	}
 
-	void GetCamCoordinateTransformVert(Object* vs) { 
+	void GetCamCoordinateTransformVert(Object* vs,bool normalConvert = false) { 
 		MATRIX4x4* ma = new MATRIX4x4();
 		GenerateCamMatrix(position, ma);
+		for (int i = 0; i < vs->prefab->normalCount; i++) { 
+			matrixdot(vs->verts[i].normal, vs->verts[i].normal, ma);
+		}
 		for (int i = 0; i < vs->vertCount; i++) {
 			matrixdot(vs->verts[i].position, vs->verts[i].position, ma);
 	//		cout << vs->verts[i].position->x << "  " << vs->verts[i].position->y << "  " << vs->verts[i].position->z << endl; 

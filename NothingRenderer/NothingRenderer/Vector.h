@@ -73,11 +73,19 @@ namespace VECTOR {
 
 	}
 
-	VECTOR4* minus(VECTOR4*res, VECTOR4* a, VECTOR4* b) { 
+	VECTOR4* minusV3(VECTOR4*res, VECTOR4* a, VECTOR4* b) { 
 		res->x = a->x - b->x;
 		res->y = a->y - b->y;
 		res->z = a->z - b->z;
 		res->w = a->w ;
+		return res;
+
+	}
+	VECTOR4* minusV4(VECTOR4*res, VECTOR4* a, VECTOR4* b) {
+		res->x = a->x - b->x;
+		res->y = a->y - b->y;
+		res->z = a->z - b->z;
+		res->w = 0;
 		return res;
 
 	}

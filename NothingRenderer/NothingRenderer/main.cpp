@@ -13,7 +13,7 @@ using namespace std;
 #include"PipelineController.h"
 int width, height;   
 
-PipelineController pipeline;
+static PipelineController pipeline;
 ObjectHolder * holder;
 
 
@@ -41,48 +41,6 @@ void Drawline(VECTOR2* from , VECTOR2* to ,VECTOR4 * col = NULL) {
 }
 
 
-
-void DrawLine2(VECTOR2* from, VECTOR2* to, VECTOR4 * col = NULL) { 
-	if (col == NULL)
-		col = penCol; 
-	int x0,x1,y0,y1;
-	x0 = from->x, x1 = to->x, y0 = from->y, y1 = to->y;
-	bool steep = abs(y1 - y0) > abs(x1 - x0);
-	if (steep) {
-		swap(x0, y0);
-		swap(x1, y1);
-
-	}	
-	if (x0 > x1) {
-		swap(x0, x1);
-		swap(y0, y1);
-	}
-
-	int deltax = x1 - x0;
-	int deltay = abs(y1 - y0);
-	int error = deltax / 2;
-	int ystep;
-	int  y = y0;
-
-	if (y0 < y1) {
-		ystep = 1;
-	}
-	else
-		ystep = -1; 
-	for (int i = 0; x0 + i < x1; i++) {
-		if (steep)
-	//		DrawPoint(y, x0 + i);
-		else
-	//		DrawPoint(x0 + i, y);
-		error = error - deltay;
-		if (error < 0)
-		{
-			y = y + ystep;
-			error = error + deltax;
-		}
-	}
-
-}
 */
    
 
@@ -511,10 +469,12 @@ void ClipOne(VERT* A , VERT* B ,VERT* C,VERT* D , VERT* E ) {
 */
 
 void RenderACube() {
-	VECTOR4  pos (5, 0, 4, 1); 
 //	eye.GenerateCenterPoint();  
+	VECTOR4  pos(0, 0, 4, 1);
 	Object *object = new Object(); 
 	pipeline.CreateObject("cube001", "cube", &pos);
+	pos.y = 4;
+	pipeline.CreateObject("cube002", "cube", &pos);
 	pipeline.RenderAll(); 
 //	pipeline.RenderTarget(*object);
 	
@@ -522,11 +482,13 @@ void RenderACube() {
 
 float  t = 0;
 void Mainloop() {
-	t += 3; 
-	if (t > 360)
-		t = 0;
+	t += 0.5;
 	Object* ob = pipeline.GetObject("cube001");
-	ob->SetRotation(0, 1, 1, t);
+	ob->SetRotation(1, 0, 0, t);
+	Object* ob2 = pipeline.GetObject("cube002");
+	ob->SetPosition(4,8, 10, 1);
+	//pipeline.lightDir.z = -sin(t /180 * 3.1415926); pipeline.lightDir.y = -cos(t / 180 * 3.1415926);
+	//normalizedVector3(&pipeline.lightDir, &pipeline.lightDir);
 	VECTOR4 col;
 	glClear(GL_COLOR_BUFFER_BIT);
 	glBegin(GL_POINTS);

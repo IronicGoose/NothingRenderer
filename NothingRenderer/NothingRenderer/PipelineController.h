@@ -16,6 +16,7 @@ class PipelineController {
 	float m_width, m_height;
 	
 public :
+	VECTOR4 lightDir;
 	PipelineController();
 	void CreateBuffer(int w, int h) {
 		m_buffer.SetWidthHeight(w, h); 
@@ -52,30 +53,61 @@ public :
 		return false;
 	}
 	Object * GetObject(string name );
-	void GetVertsWorldSpace(Object* obj, MATRIX4x4* rotateMatrix) {
+	void GetVertsWorldSpace(Object* obj, MATRIX4x4* rotateMatrix, bool normalConvert = false) {
 		MATRIX4x4* ma = new MATRIX4x4();
 		GenerateTransformMatrix(obj->position, ma);
+		for (int i = 0; i < obj->prefab->normalCount; i++) {
 
+			matrixdot(obj->verts[i].normal, obj->prefab->n[i], rotateMatrix); 
+		}
 		for (int i = 0; i < obj->prefab->vertCount; i++) {
 			matrixdot(obj->verts[i].position, obj->prefab->v[i], rotateMatrix);
+			//normal convert
 		//	cout << "Rot" << obj->verts[i].position->x << " " << obj->verts[i].position->y << " " << obj->verts[i].position->z << endl;
+
+
 			matrixdot(obj->verts[i].position, obj->verts[i].position, ma);
+
 	//		cout << obj->verts[i].position->x << " " << obj->verts[i].position->y << " " << obj->verts[i].position->z << endl;
 			if (i % 3 == 0) {
-				obj->verts[i].color->x = 1;
+				obj->verts[i].color->x = 1; 
 			}
 			else if (i % 3 == 1) {
-				obj->verts[i].color->y = 1;
+				obj->verts[i].color->y = 1; 
 			}
 			else
 				obj->verts[i].color->z = 1;
+			obj->verts[i].color->x = 1;
+			obj->verts[i].color->y = 1;
+			obj->verts[i].color->z = 1;
 		}
 	} 
 	float TriangleArea(int x0, int y0, int x1, int y1) {
 		return abs(((float)(x0 *y1 - x1 * y0)) / 2);
 	}
+	void AffineFunction(VERT* A) {
+		A->position->x = A->position->x / A->position->z;
+		A->position->y = A->position->y / A->position->z;
+	}
+	void ReAffineFunction(VERT* A) {
+
+		A->position->x = A->position->x * A->position->z;
+		A->position->y = A->position->y * A->position->z;
+	}
+	void AffineFunction(VECTOR4& A) {
+		A.x = A.x / A.z;
+		A.y = A.y / A.z;
+	}
+	void ReAffineFunction(VECTOR4& A) {
+		A.x = A.x * A.z;
+		A.y = A.y * A.z;
+	}
 	void SampleColor(VECTOR4* A, VECTOR4 * B, VECTOR4* C, VECTOR4 * P, VECTOR4* res) {
 		float a, b, c, total;
+		AffineFunction(*A);
+		AffineFunction(*B);
+		AffineFunction(*C);
+		AffineFunction(*P);
 		c = TriangleArea(A->x - P->x, A->y - P->y, B->x - P->x, B->y - P->y);
 		b = TriangleArea(A->x - P->x, A->y - P->y, C->x - P->x, C->y - P->y);
 		a = TriangleArea(B->x - P->x, B->y - P->y, C->x - P->x, C->y - P->y);
@@ -86,33 +118,142 @@ public :
 		res->x = a;
 		res->y = b;
 		res->z = c;
+		ReAffineFunction(*A);
+		ReAffineFunction(*B);
+		ReAffineFunction(*C);
+		ReAffineFunction(*P);
+	}
+	float SampleDepth(VECTOR4* A, VECTOR4 * B, VECTOR4* C, VECTOR4 * P) {
+		float a, b, c, total;
+		c = TriangleArea(A->x - P->x, A->y - P->y, B->x - P->x, B->y - P->y);
+		b = TriangleArea(A->x - P->x, A->y - P->y, C->x - P->x, C->y - P->y);
+		a = TriangleArea(B->x - P->x, B->y - P->y, C->x - P->x, C->y - P->y);
+		total = a + b + c;
+		a = a / total;
+		b = b / total;
+		c = c / total;
+		return A->z * a + B->z * b + C->z * c;
 	}
 	void DrawTriangle3(VERT*A , VERT*B , VERT * C, bool recurse = true);
 
+	void DrawLine2(int x1, int  y1, int x2, int y2) {
+		int tokenx = 1;
+		int tokeny = 1;
+		if (x1 > x2)
+			tokenx = -1;
+		if (y1 > y2)
+			tokeny = -1;
+		VECTOR4 col(0, 0, 0,1);
+
+		int deltax = x1 - x2;
+		int deltay = y1 - y2;
+		bool movey = false;
+		if (deltax * tokenx > deltay *tokeny)
+			movey = true;
+		float error = 0;
+		float deltaerr = (float) deltay / deltax;
+		if (movey) {
+			int x = x1;
+			for (int y = y1; y < y2; y+=tokeny) {
+				//draw point  
+				m_buffer.WriteToColorBuffer(x, y, &col);
+				error = error + deltaerr;
+				while (abs(error) >= 0.5) {
+					x += tokenx;
+					error -= tokenx;
+					m_buffer.WriteToColorBuffer(x, y, &col);
+				}
+			}
+		}
+		else {
+			int y = y1;
+			for (int x = x1; abs(x - x2)> 0.5; x+=tokenx) {
+				m_buffer.WriteToColorBuffer(x, y, &col);
+				//draw point  
+				error = error + deltaerr;
+				if (abs(error) >= 0.5) {
+					y += tokeny;
+					error -= tokeny;
+				}
+			}
+		}
+	}
+	void VertexShader(VECTOR4& viewDir,VERT& A ) {
+
+	//	cout << A.normal->x << " " << A.normal->y << " " << A.normal->z << endl;
+		VECTOR::minusV4(&viewDir,  m_cam.position, A.position);
+		normalizedVector3(&viewDir, &viewDir);
+		normalizedVector3(A.normal, A.normal);
+		
+		VECTOR4 r;
+		VECTOR::dot(&r,A.normal, 2);
+
+		add(&r, &r,& lightDir);
+
+		normalizedVector3(&r,&r);
+
+		float  sth = dot3x3(&r, &viewDir);
+		sth = sth *0.5 + 0.5; 
+	//	cout << " " << sth <<A.position->x << endl;
+		
+		dot(A.color, A.color, sth*1.2 );
+
+	}
+	void DrawPoint(float & depth,VERT*A,VERT* B ,VERT* C , VECTOR4& P, VECTOR4 & res ,VECTOR4& Col) {
+
+
+		depth = SampleDepth(A->position, B->position, C->position, &P);
+		P.z = depth;
+		SampleColor(A->position, B->position, C->position, &P, &res);
+		if (  ValidScreamPos(P.x, P.y) && depth > m_buffer.GetZBufferValue(P.x, P.y)) {
+			m_buffer.WriteToZBuffer(depth, P.x, P.y);
+			Col.x = A->color->x * res.x + B->color->x * res.y + C->color->x * res.z;
+			Col.y = A->color->y * res.x + B->color->y * res.y + C->color->y * res.z;
+			Col.z = A->color->z * res.x + B->color->z * res.y + C->color->z * res.z;
+
+			m_buffer.WriteToColorBuffer(P.x, P.y, &Col);
+		}
+	}
 };
 
 void PipelineController::RenderAll() {
 	m_buffer.ClearColBuffer(m_penCol);
+	DrawLine2(1, 1,20, 200);
 	for (int i = 0; i < targetLength; i++) {
 		RenderTarget(*m_renderTargets[i]);
 	}
 	m_buffer.SwapBuffer();
 }
+
 void PipelineController::RenderTarget(Object &  object) {
 
+	VECTOR4 viewDir(0, 0, 0, 0);
 	int a, b, c;
-	MATRIX4x4 rot;
-	GenerateRotateMatrix(*object.rotation, &rot); 
+	int na, nb, nc;
+	MATRIX4x4 rot,ma;
+	GenerateRotateMatrix(*object.rotation, &rot);  
+	GenerateTransformMatrix(object.position, &ma);
+	GetVertsWorldSpace(&object, &rot,true);
+	m_cam.GetCamCoordinateTransformVert(&object);
 	for (int i = 0; i < object.prefab->faceCount; i++) {
 		a = object.prefab->f[i]->a.x - 1;
 		b = object.prefab->f[i]->b.x - 1;
-		c = object.prefab->f[i]->c.x - 1; 
-		object.verts[a].normal = object.prefab->n[a];
-		object.verts[b].normal = object.prefab->n[b];
-		object.verts[c].normal = object.prefab->n[c];
+		c = object.prefab->f[i]->c.x - 1;
+		na = object.prefab->f[i]->a.z - 1;
+		nb = object.prefab->f[i]->b.z - 1;
+		nc = object.prefab->f[i]->c.z - 1;
+		VERT& A = object.verts[a], &B = object.verts[b], &C = object.verts[c]; 
+
+		copy(object.prefab->n[na], A.normal);
+		copy(object.prefab->n[nb], B.normal);
+		copy(object.prefab->n[nc], C.normal);
+		matrixdot(A.normal, A.normal, &rot);
+		matrixdot(B.normal, B.normal, &rot);
+		matrixdot(C.normal, C.normal, &rot);
+		VertexShader(viewDir, A);
+		VertexShader(viewDir, B);
+		VertexShader(viewDir, C);
 	}
-	GetVertsWorldSpace(&object, &rot);
-	m_cam.GetCamCoordinateTransformVert(&object); 
 	m_cam.GetClipSpaceTransfromVert(&object);
 	m_cam.GetUV(&object);
 	VECTOR2 va, vb, vc;
@@ -126,18 +267,20 @@ void PipelineController::RenderTarget(Object &  object) {
 }
 void PipelineController::DrawTriangle3(VERT* A, VERT* B, VERT * C, bool recurse ) {
 	{
+		if (recurse == true) {
 
-		if ((A->position->y == B->position->y || A->position->y == C->position->y)) {
-			if (A->position->y == B->position->y) {
-				DrawTriangle3(C, B, A);
-				return;
-			}
-			if (A->position->y == C->position->y) {
-				DrawTriangle3(B, C, A);
-				return;
+			if ((A->position->y == B->position->y || A->position->y == C->position->y)) {
+				if (A->position->y == B->position->y) {
+					DrawTriangle3(C, B, A, false);
+					return;
+				}
+				if (A->position->y == C->position->y) {
+					DrawTriangle3(B, C, A, false);
+					return;
+				}
 			}
 		}
-		if (B->position->y == C->position->y)
+		if (B->position->y == C->position->y) 
 			recurse = false;
 		if (recurse) {
 			recurse = false;
@@ -145,7 +288,7 @@ void PipelineController::DrawTriangle3(VERT* A, VERT* B, VERT * C, bool recurse 
 			DrawTriangle3(C, B, A, false);
 		}
 
-		float step = 0.2, dis = 0.2f;
+		float step = 0.3, dis = 0.3;
 		VECTOR2 delAB, delAC;
 		VECTOR4	drawPointAB, drawPointAC;
 		delAB.x = B->position->x - A->position->x;
@@ -175,65 +318,49 @@ void PipelineController::DrawTriangle3(VERT* A, VERT* B, VERT * C, bool recurse 
 		y += dir;
 		VECTOR4 res, P, Col;
 		float depth = -99;
+
+		 
+
 		while (sqdistance2D(&drawPointAB, B->position) > dis)
-		{
+		{ 
+			
+			int i = drawPointAB.x, j = drawPointAB.y;
+			P.x = i; P.y = j;
+			DrawPoint(depth, A, B, C, P, res, Col);
 			drawPointAB.x += delAB.x;
 			drawPointAB.y += delAB.y;
-			int i = drawPointAB.x, j = drawPointAB.y;
+			i = drawPointAB.x, j = drawPointAB.y;
+			P.x = i; P.y = j;
+			DrawPoint(depth, A, B, C, P, res, Col);
 			if (j != y) {
-				//draw point
-				P.x = i; P.y = j;
-				SampleColor(A->position, B->position, C->position, &P, &res);
-				depth = A->position->z * res.x + B->position->z * res.y + C->position->z * res.z;
-				if (depth > m_buffer.GetZBufferValue(i, j) && ValidScreamPos(i, j)) {
-					m_buffer.WriteToZBuffer(depth, i, j);
-					Col.x = A->color->x * res.x + B->color->x * res.y + C->color->x * res.z;
-					Col.y = A->color->y * res.x + B->color->y * res.y + C->color->y * res.z;
-					Col.z = A->color->z * res.x + B->color->z * res.y + C->color->z * res.z;
-
-					m_buffer.WriteToColorBuffer(i, j, &Col);
-				}
-
+				//draw point   
 				continue;
 			}
 			while (sqdistance2D(&drawPointAC, C->position) > dis)
 			{
+				int k = drawPointAC.x, w = drawPointAC.y;
+				P.x = k; P.y = w;
+				DrawPoint(depth, A, B, C, P, res, Col);
 				drawPointAC.x += delAC.x;
 				drawPointAC.y += delAC.y;
-				int k = drawPointAC.x, w = drawPointAC.y;
+				k = drawPointAC.x, w = drawPointAC.y;
+				P.x = k; P.y = w;
+				DrawPoint(depth, A, B, C, P, res, Col);
 				if (w != y)
 				{
-					//draw point
-					P.x = k; P.y = w;
-					SampleColor(A->position, B->position, C->position, &P, &res);
-					depth = A->position->z * res.x + B->position->z * res.y + C->position->z * res.z;
-					if (depth > m_buffer.GetZBufferValue(k, w) && ValidScreamPos(k, w)) {
-						m_buffer.WriteToZBuffer(depth, k, w);
-						Col.x = A->color->x * res.x + B->color->x * res.y + C->color->x * res.z;
-						Col.y = A->color->y * res.x + B->color->y * res.y + C->color->y * res.z;
-						Col.z = A->color->z * res.x + B->color->z * res.y + C->color->z * res.z;
-						m_buffer.WriteToColorBuffer(k, w, &Col);
-					}
+					//draw point   
 					continue;
 				}
 				int x = min(i, k), xm = max(i, k);
 				P.y = y;
 				for (int ii = 0; x + ii < xm; ii++) {
-					P.x = x + ii;
-					SampleColor(A->position, B->position, C->position, &P, &res);
-					depth = A->position->z * res.x + B->position->z * res.y + C->position->z * res.z;
-					if (depth > m_buffer.GetZBufferValue(x + ii, y) && ValidScreamPos(x + ii, y)) {
-						m_buffer.WriteToZBuffer(depth, x + ii, y);
-						Col.x = A->color->x * res.x + B->color->x * res.y + C->color->x * res.z;
-						Col.y = A->color->y * res.x + B->color->y * res.y + C->color->y * res.z;
-						Col.z = A->color->z * res.x + B->color->z * res.y + C->color->z * res.z;
-						//calculate Z  value in this position
-						m_buffer.WriteToColorBuffer(x + ii, y, &Col);
-					}
+					P.x = x + ii;  
+					DrawPoint(depth, A, B, C, P, res, Col);
 				}
 				y += dir;
 				break;
-			}
+			} 
+
 		}
 	}
 }
@@ -256,6 +383,8 @@ void PipelineController::AddRenderTarget(Object* ob) {
 PipelineController::PipelineController() {
 	VECTOR4 col(0.953, 0.447, 0.8156, 1);
 	copy(&col, &m_penCol); 
+	lightDir.x = 0; lightDir.y = 0; lightDir.z = -1; lightDir.w = 0;
+	normalizedVector3(&lightDir, &lightDir);
 }
 //void PipelineController::RenderAll() {
 
