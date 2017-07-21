@@ -77,7 +77,7 @@ namespace VECTOR {
 		res->x = a->x - b->x;
 		res->y = a->y - b->y;
 		res->z = a->z - b->z;
-		res->w = a->w ;
+		res->w = 0 ;
 		return res;
 
 	}
@@ -96,6 +96,7 @@ namespace VECTOR {
 		res->x = vec->x * abs;
 		res->y = vec->y * abs;
 		res->z = vec->z * abs;
+		res->w = 0;
 		return res;
 	}
 	VECTOR4* normalizedVector4(VECTOR4*vec) {

@@ -482,9 +482,10 @@ void Mainloop() {
 	Object* ob = pipeline.GetObject("cube001");
 	Object* ob2 = pipeline.GetObject("cube002");
 	ob2->SetRotation(1, 1, 1, t);
-	ob->SetPosition(4,8, 10, 1);
+	ob->SetPosition(0,0, 4, 1);
 	//pipeline.lightDir.z = -sin(t /180 * 3.1415926); pipeline.lightDir.y = -cos(t / 180 * 3.1415926);
-	//normalizedVector3(&pipeline.lightDir, &pipeline.lightDir);
+	//pipeline.lightDir.z = -cos(t / 180 * 3.1415926);
+//	normalizedVector3(&pipeline.lightDir, &pipeline.lightDir);
 	VECTOR4 col;
 	glClear(GL_COLOR_BUFFER_BIT);
 	glBegin(GL_POINTS);

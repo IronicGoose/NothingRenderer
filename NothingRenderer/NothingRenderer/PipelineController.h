@@ -15,7 +15,179 @@ class PipelineController {
 	Camera m_cam;
 	ObjectHolder m_holder;
 	float m_width, m_height;
-	
+
+	void RenderTarget(Object &  object);
+	void GetVertsWorldSpace(Object* obj, MATRIX4x4* rotateMatrix, bool normalConvert = false) {
+		MATRIX4x4* ma = new MATRIX4x4();
+		GenerateTransformMatrix(obj->position, ma);
+		for (int i = 0; i < obj->prefab->normalCount; i++) {
+
+			matrixdot(obj->verts[i].normal, obj->prefab->n[i], rotateMatrix);
+		}
+		for (int i = 0; i < obj->prefab->vertCount; i++) {
+			matrixdot(obj->verts[i].position, obj->prefab->v[i], rotateMatrix);
+			//normal convert
+			//	cout << "Rot" << obj->verts[i].position->x << " " << obj->verts[i].position->y << " " << obj->verts[i].position->z << endl;
+
+
+			matrixdot(obj->verts[i].position, obj->verts[i].position, ma);
+
+			//		cout << obj->verts[i].position->x << " " << obj->verts[i].position->y << " " << obj->verts[i].position->z << endl;
+			if (i % 3 == 0) {
+				obj->verts[i].color->x = 1;
+			}
+			else if (i % 3 == 1) {
+				obj->verts[i].color->y = 1;
+			}
+			else
+				obj->verts[i].color->z = 1;
+			obj->verts[i].color->x = 1;
+			obj->verts[i].color->y = 1;
+			obj->verts[i].color->z = 1;
+		}
+	}
+	float TriangleArea(int x0, int y0, int x1, int y1) {
+		return abs(((float)(x0 *y1 - x1 * y0)) / 2);
+	}
+	void AffineFunction(VERT* A) {
+		A->position->x = A->position->x / A->position->z;
+		A->position->y = A->position->y / A->position->z;
+	}
+	void ReAffineFunction(VERT* A) {
+
+		A->position->x = A->position->x * A->position->z;
+		A->position->y = A->position->y * A->position->z;
+	}
+	void AffineFunction(VECTOR4& A) {
+		A.x = A.x / A.z;
+		A.y = A.y / A.z;
+	}
+	void ReAffineFunction(VECTOR4& A) {
+		A.x = A.x * A.z;
+		A.y = A.y * A.z;
+	}
+	void ReAffineFunction(int& Px, int& Py, float& Pz) {
+		Px = Px * Pz;
+		Py = Py * Pz;
+	}
+	void AffineFunction(int& Px, int& Py, float& Pz) {
+		Px = Px / Pz;
+		Py = Py / Pz;
+	}
+	void SampleColor(VECTOR4* A, VECTOR4 * B, VECTOR4* C, int Px, int Py, float Pz, VECTOR4* res) {
+		float a, b, c, total;
+		AffineFunction(*A);
+		AffineFunction(*B);
+		AffineFunction(*C);
+		AffineFunction(Px, Py, Pz);
+		c = TriangleArea(A->x - Px, A->y - Py, B->x - Px, B->y - Py);
+		b = TriangleArea(A->x - Px, A->y - Py, C->x - Px, C->y - Py);
+		a = TriangleArea(B->x - Px, B->y - Py, C->x - Px, C->y - Py);
+		total = a + b + c;
+		a = a / total;
+		b = b / total;
+		c = c / total;
+		res->x = a;
+		res->y = b;
+		res->z = c;
+		ReAffineFunction(*A);
+		ReAffineFunction(*B);
+		ReAffineFunction(*C);
+	}
+	float SampleDepth(VECTOR4* A, VECTOR4 * B, VECTOR4* C, int Px, int Py) {
+		float a, b, c, total;
+		c = TriangleArea(A->x - Px, A->y - Py, B->x - Px, B->y - Py);
+		b = TriangleArea(A->x - Px, A->y - Py, C->x - Px, C->y - Py);
+		a = TriangleArea(B->x - Px, B->y - Py, C->x - Px, C->y - Py);
+		total = a + b + c;
+		a = a / total;
+		b = b / total;
+		c = c / total;
+		return A->z * a + B->z * b + C->z * c;
+	}
+	void DrawTriangle3(VERT*A, VERT*B, VERT * C, bool recurse = true);
+	//void DrawTriangle4(VERT*A, VERT*B, VERT * C, bool recurse = true);
+
+	void DrawLine2(int x0, int y0, int x1, int y1, VECTOR2 * point) {
+		bool steep = abs(y1 - y0) > abs(x1 - x0);
+		if (steep) {
+			swap(x0, y0);
+			swap(x1, y1);
+
+		}
+		if (x0 > x1) {
+			swap(x0, x1);
+			swap(y0, y1);
+		}
+
+		int deltax = x1 - x0;
+		int deltay = abs(y1 - y0);
+		int error = deltax / 2;
+		int ystep;
+		int  y = y0;
+
+		if (y0 < y1) {
+			ystep = 1;
+		}
+		else
+			ystep = -1;
+		int count = 0;
+		for (int i = 0; x0 + i < x1; i++) {
+			if (steep) {
+				point[count].x = y;
+				point[count].y = x0 + i;
+			}
+			else {
+				point[count].x = x0 + i;
+				point[count].y = y;
+			}
+			error = error - deltay;
+			if (error < 0)
+			{
+				y = y + ystep;
+				error = error + deltax;
+			}
+		}
+
+	}
+	void VertexShader(VECTOR4& viewDir, VERT& A) {
+
+		//	cout << A.normal->x << " " << A.normal->y << " " << A.normal->z << endl;
+		VECTOR::minusV4(&viewDir, m_cam.position, A.position);
+		normalizedVector3(&viewDir, &viewDir);
+		normalizedVector3(A.normal, A.normal);
+
+		VECTOR4 r;
+
+		VECTOR::dot(&r, A.normal, 2 * dot3x3(A.normal, &lightDir));
+
+		minusV3(&r, &r, &lightDir);
+
+		normalizedVector3(&r, &r);
+		float diff = dot3x3(A.normal, &lightDir);
+		diff = diff * 0.5 + 0.5;
+		float  spe = dot3x3(&r, &viewDir);
+		spe = spe *0.5 + 0.5;
+		spe = pow(spe, 3);
+		cout << spe << endl;
+		dot(A.color, A.color, spe + diff);
+
+	}
+	void DrawPoint(float & depth, VERT*A, VERT* B, VERT* C, int Px, int Py, VECTOR4 & res, VECTOR4& Col) {
+
+
+		depth = SampleDepth(A->position, B->position, C->position, Px, Py);
+		float Pz = depth;
+		SampleColor(A->position, B->position, C->position, Px, Py, Pz, &res);
+		if (ValidScreamPos(Px, Py) && depth > m_buffer.GetZBufferValue(Px, Py)) {
+			m_buffer.WriteToZBuffer(depth, Px, Py);
+			Col.x = A->color->x * res.x + B->color->x * res.y + C->color->x * res.z;
+			Col.y = A->color->y * res.x + B->color->y * res.y + C->color->y * res.z;
+			Col.z = A->color->z * res.x + B->color->z * res.y + C->color->z * res.z;
+
+			m_buffer.WriteToColorBuffer(Px, Py, &Col);
+		}
+	}
 public :
 	VECTOR4 lightDir;
 	PipelineController();
@@ -43,7 +215,6 @@ public :
 	void RenderAll();
 	void AddRenderTarget(Object* ob); 
 	bool RemoveRenderTarget(Object ob); 
-	void RenderTarget(Object &  object);
 	void CreateObject(string objName, string type, const VECTOR4* pos) {
 		Object * output =  m_holder.CreateObject(objName, type,pos); 
 		AddRenderTarget(output);
@@ -54,96 +225,6 @@ public :
 		return false;
 	}
 	Object * GetObject(string name );
-	void GetVertsWorldSpace(Object* obj, MATRIX4x4* rotateMatrix, bool normalConvert = false) {
-		MATRIX4x4* ma = new MATRIX4x4();
-		GenerateTransformMatrix(obj->position, ma);
-		for (int i = 0; i < obj->prefab->normalCount; i++) {
-
-			matrixdot(obj->verts[i].normal, obj->prefab->n[i], rotateMatrix); 
-		}
-		for (int i = 0; i < obj->prefab->vertCount; i++) {
-			matrixdot(obj->verts[i].position, obj->prefab->v[i], rotateMatrix);
-			//normal convert
-		//	cout << "Rot" << obj->verts[i].position->x << " " << obj->verts[i].position->y << " " << obj->verts[i].position->z << endl;
-
-
-			matrixdot(obj->verts[i].position, obj->verts[i].position, ma);
-
-	//		cout << obj->verts[i].position->x << " " << obj->verts[i].position->y << " " << obj->verts[i].position->z << endl;
-			if (i % 3 == 0) {
-				obj->verts[i].color->x = 1; 
-			}
-			else if (i % 3 == 1) {
-				obj->verts[i].color->y = 1; 
-			}
-			else
-				obj->verts[i].color->z = 1;
-			obj->verts[i].color->x = 1;
-			obj->verts[i].color->y = 1;
-			obj->verts[i].color->z = 1;
-		}
-	} 
-	float TriangleArea(int x0, int y0, int x1, int y1) {
-		return abs(((float)(x0 *y1 - x1 * y0)) / 2);
-	}
-	void AffineFunction(VERT* A) {
-		A->position->x = A->position->x / A->position->z;
-		A->position->y = A->position->y / A->position->z;
-	}
-	void ReAffineFunction(VERT* A) {
-
-		A->position->x = A->position->x * A->position->z;
-		A->position->y = A->position->y * A->position->z;
-	}
-	void AffineFunction(VECTOR4& A) {
-		A.x = A.x / A.z;
-		A.y = A.y / A.z;
-	}
-	void ReAffineFunction(VECTOR4& A) {
-		A.x = A.x * A.z;
-		A.y = A.y * A.z;
-	}
-	void ReAffineFunction(int& Px, int& Py , float& Pz) {
-		Px =   Px * Pz;
-		Py = Py * Pz;
-	}
-	void AffineFunction(int& Px, int& Py, float& Pz) {
-		Px = Px / Pz;
-		Py = Py / Pz;
-	}
-	void SampleColor(VECTOR4* A, VECTOR4 * B, VECTOR4* C, int Px ,int Py , float Pz, VECTOR4* res) {
-		float a, b, c, total;
-		AffineFunction(*A);
-		AffineFunction(*B);
-		AffineFunction(*C);
-		AffineFunction(Px,Py,Pz);
-		c = TriangleArea(A->x - Px, A->y - Py, B->x - Px, B->y - Py);
-		b = TriangleArea(A->x - Px, A->y - Py, C->x - Px, C->y - Py);
-		a = TriangleArea(B->x - Px, B->y - Py, C->x - Px, C->y - Py);
-		total = a + b + c;
-		a = a / total;
-		b = b / total;
-		c = c / total;
-		res->x = a;
-		res->y = b;
-		res->z = c;
-		ReAffineFunction(*A);
-		ReAffineFunction(*B);
-		ReAffineFunction(*C); 
-	}
-	float SampleDepth(VECTOR4* A, VECTOR4 * B, VECTOR4* C, int Px,int Py) {
-		float a, b, c, total;
-		c = TriangleArea(A->x - Px, A->y - Py, B->x - Px, B->y - Py);
-		b = TriangleArea(A->x - Px, A->y - Py, C->x - Px, C->y - Py);
-		a = TriangleArea(B->x - Px, B->y - Py, C->x - Px, C->y - Py);
-		total = a + b + c;
-		a = a / total;
-		b = b / total;
-		c = c / total;
-		return A->z * a + B->z * b + C->z * c;
-	}
-	void DrawTriangle3(VERT*A , VERT*B , VERT * C, bool recurse = true);
-	//void DrawTriangle4(VERT*A, VERT*B, VERT * C, bool recurse = true);
 	/*
 	void DrawLine2(int x1, int  y1, int x2, int y2,VECTOR2* point ) { 
 		cout << x1 << " " << x2 << " " << y1 << " " << " " << y2 << endl;
@@ -205,85 +286,6 @@ public :
 		}
 	}
 	*/
-
-	void DrawLine2(int x0, int y0 , int x1 , int y1,VECTOR2 * point) {   
-		bool steep = abs(y1 - y0) > abs(x1 - x0);
-		if (steep) {
-			swap(x0, y0);
-			swap(x1, y1);
-
-		}
-		if (x0 > x1) {
-			swap(x0, x1);
-			swap(y0, y1);
-		}
-
-		int deltax = x1 - x0;
-		int deltay = abs(y1 - y0);
-		int error = deltax / 2;
-		int ystep;
-		int  y = y0;
-
-		if (y0 < y1) {
-			ystep = 1;
-		}
-		else
-			ystep = -1;
-		int count = 0;
-		for (int i = 0; x0 + i < x1; i++) {
-			if (steep) {
-				point[count].x = y;
-				point[count].y = x0 + i; 
-			}
-			else {
-				point[count].x = x0 + i;
-				point[count].y = y;
-			} 
-			error = error - deltay;
-			if (error < 0)
-			{
-				y = y + ystep;
-				error = error + deltax;
-			}
-		}
-
-	}
-	void VertexShader(VECTOR4& viewDir,VERT& A ) {
-
-	//	cout << A.normal->x << " " << A.normal->y << " " << A.normal->z << endl;
-		VECTOR::minusV4(&viewDir,  m_cam.position, A.position);
-		normalizedVector3(&viewDir, &viewDir);
-		normalizedVector3(A.normal, A.normal);
-		
-		VECTOR4 r;
-		VECTOR::dot(&r,A.normal, 2);
-
-		add(&r, &r,& lightDir);
-
-		normalizedVector3(&r,&r);
-
-		float  sth = dot3x3(&r, &viewDir);
-		sth = sth *0.5 + 0.5; 
-	//	cout << " " << sth <<A.position->x << endl;
-		
-		dot(A.color, A.color, sth*1.2 );
-
-	}
-	void DrawPoint(float & depth,VERT*A,VERT* B ,VERT* C , int Px,int Py, VECTOR4 & res ,VECTOR4& Col) {
-
-
-		depth = SampleDepth(A->position, B->position, C->position, Px,Py);
-		float Pz = depth;
-		SampleColor(A->position, B->position, C->position, Px,Py,Pz, &res);
-		if (  ValidScreamPos(Px, Py) && depth > m_buffer.GetZBufferValue(Px, Py)) {
-			m_buffer.WriteToZBuffer(depth, Px, Py);
-			Col.x = A->color->x * res.x + B->color->x * res.y + C->color->x * res.z;
-			Col.y = A->color->y * res.x + B->color->y * res.y + C->color->y * res.z;
-			Col.z = A->color->z * res.x + B->color->z * res.y + C->color->z * res.z;
-
-			m_buffer.WriteToColorBuffer(Px, Py, &Col);
-		}
-	}
 };
 
 void PipelineController::RenderAll() {
@@ -561,7 +563,7 @@ void PipelineController::AddRenderTarget(Object* ob) {
 PipelineController::PipelineController() {
 	VECTOR4 col(0.953, 0.447, 0.8156, 1);
 	copy(&col, &m_penCol); 
-	lightDir.x = 0; lightDir.y = 0; lightDir.z = -1; lightDir.w = 0;
+	lightDir.x = 0; lightDir.y = 0; lightDir.z = 1; lightDir.w = 0;
 	normalizedVector3(&lightDir, &lightDir);
 }
 //void PipelineController::RenderAll() {
