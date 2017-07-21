@@ -56,6 +56,7 @@ public:
 	}
 	float  GetZBufferValue(int x, int y) { 
 		int index = y* m_width + x;
+		//return -20;
 		return m_ZBuffer[index];
 	}
 	const VECTOR4&  GetColorBufferValue(int x, int y) {
@@ -68,8 +69,7 @@ public:
 }; 
 
 Buffer::Buffer()
-{
-
+{ 
 }
 
 Buffer::~Buffer()

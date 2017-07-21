@@ -14,8 +14,7 @@ using namespace std;
 int width, height;   
 
 static PipelineController pipeline;
-ObjectHolder * holder;
-
+ObjectHolder * holder; 
 
 /*
 void Drawline(VECTOR2* from , VECTOR2* to ,VECTOR4 * col = NULL) {
@@ -41,10 +40,7 @@ void Drawline(VECTOR2* from , VECTOR2* to ,VECTOR4 * col = NULL) {
 }
 
 
-*/
-   
-
-
+*/ 
 /*
 void DrawTriganle2(VERT* A, VERT* B, VERT * C ) {
 	if( !(A->position->y == B->position->y && A->position->y == C->position->y)) { 
@@ -482,19 +478,19 @@ void RenderACube() {
 
 float  t = 0;
 void Mainloop() {
-	t += 0.5;
+	t += 5;
 	Object* ob = pipeline.GetObject("cube001");
-	ob->SetRotation(1, 0, 0, t);
 	Object* ob2 = pipeline.GetObject("cube002");
+	ob2->SetRotation(1, 1, 1, t);
 	ob->SetPosition(4,8, 10, 1);
 	//pipeline.lightDir.z = -sin(t /180 * 3.1415926); pipeline.lightDir.y = -cos(t / 180 * 3.1415926);
 	//normalizedVector3(&pipeline.lightDir, &pipeline.lightDir);
 	VECTOR4 col;
 	glClear(GL_COLOR_BUFFER_BIT);
 	glBegin(GL_POINTS);
-	for (int x = 0; x < width; ++x)
+	for (int x = 0; x < width; x++)
 	{
-		for (int y = 0; y < height; ++y) {
+		for (int y = 0; y < height; y++) {
 			col = pipeline.GetBufferColor(x, y);
 			glColor3f(col.x, col.y, col.z);
 			glVertex2i(x, height - y);
@@ -527,8 +523,8 @@ int main(int argc, char ** argv)
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
 	glutInitWindowPosition(0,0);
-	width = 1500; 
-	height = 1080;
+	width = 800; 
+	height = 800;
 	//eye.SetWidthHeight(width, height);  
 
 	VECTOR4 col(0.953, 0.447, 0.8156, 1); 

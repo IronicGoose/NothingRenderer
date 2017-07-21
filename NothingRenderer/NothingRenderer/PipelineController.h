@@ -8,6 +8,7 @@ using namespace VECTOR;
 
 class PipelineController { 
 	Object* m_renderTargets [100];
+	Object* m_TranparentTargets[100];
 	int targetLength = 0;
 	Buffer m_buffer;
 	VECTOR4 m_penCol;
@@ -102,15 +103,23 @@ public :
 		A.x = A.x * A.z;
 		A.y = A.y * A.z;
 	}
-	void SampleColor(VECTOR4* A, VECTOR4 * B, VECTOR4* C, VECTOR4 * P, VECTOR4* res) {
+	void ReAffineFunction(int& Px, int& Py , float& Pz) {
+		Px =   Px * Pz;
+		Py = Py * Pz;
+	}
+	void AffineFunction(int& Px, int& Py, float& Pz) {
+		Px = Px / Pz;
+		Py = Py / Pz;
+	}
+	void SampleColor(VECTOR4* A, VECTOR4 * B, VECTOR4* C, int Px ,int Py , float Pz, VECTOR4* res) {
 		float a, b, c, total;
 		AffineFunction(*A);
 		AffineFunction(*B);
 		AffineFunction(*C);
-		AffineFunction(*P);
-		c = TriangleArea(A->x - P->x, A->y - P->y, B->x - P->x, B->y - P->y);
-		b = TriangleArea(A->x - P->x, A->y - P->y, C->x - P->x, C->y - P->y);
-		a = TriangleArea(B->x - P->x, B->y - P->y, C->x - P->x, C->y - P->y);
+		AffineFunction(Px,Py,Pz);
+		c = TriangleArea(A->x - Px, A->y - Py, B->x - Px, B->y - Py);
+		b = TriangleArea(A->x - Px, A->y - Py, C->x - Px, C->y - Py);
+		a = TriangleArea(B->x - Px, B->y - Py, C->x - Px, C->y - Py);
 		total = a + b + c;
 		a = a / total;
 		b = b / total;
@@ -120,14 +129,13 @@ public :
 		res->z = c;
 		ReAffineFunction(*A);
 		ReAffineFunction(*B);
-		ReAffineFunction(*C);
-		ReAffineFunction(*P);
+		ReAffineFunction(*C); 
 	}
-	float SampleDepth(VECTOR4* A, VECTOR4 * B, VECTOR4* C, VECTOR4 * P) {
+	float SampleDepth(VECTOR4* A, VECTOR4 * B, VECTOR4* C, int Px,int Py) {
 		float a, b, c, total;
-		c = TriangleArea(A->x - P->x, A->y - P->y, B->x - P->x, B->y - P->y);
-		b = TriangleArea(A->x - P->x, A->y - P->y, C->x - P->x, C->y - P->y);
-		a = TriangleArea(B->x - P->x, B->y - P->y, C->x - P->x, C->y - P->y);
+		c = TriangleArea(A->x - Px, A->y - Py, B->x - Px, B->y - Py);
+		b = TriangleArea(A->x - Px, A->y - Py, C->x - Px, C->y - Py);
+		a = TriangleArea(B->x - Px, B->y - Py, C->x - Px, C->y - Py);
 		total = a + b + c;
 		a = a / total;
 		b = b / total;
@@ -135,14 +143,29 @@ public :
 		return A->z * a + B->z * b + C->z * c;
 	}
 	void DrawTriangle3(VERT*A , VERT*B , VERT * C, bool recurse = true);
-
-	void DrawLine2(int x1, int  y1, int x2, int y2) {
+	//void DrawTriangle4(VERT*A, VERT*B, VERT * C, bool recurse = true);
+	/*
+	void DrawLine2(int x1, int  y1, int x2, int y2,VECTOR2* point ) { 
+		cout << x1 << " " << x2 << " " << y1 << " " << " " << y2 << endl;
 		int tokenx = 1;
 		int tokeny = 1;
 		if (x1 > x2)
 			tokenx = -1;
 		if (y1 > y2)
 			tokeny = -1;
+		int count = 0;
+		if (x1 == x2) {
+			for (int i = 0; abs(tokeny * i + y1 - y2 ) >= 1; i++) { 
+				point[count].x = x1; point[count++].y = tokeny * i + y1;
+			}
+			return;
+		}
+		if (y1 == y2) {
+			for (int i = 0; abs( tokenx * i + x1 - x2 ) >= 1; i++) { 
+				point[count].y = y1; point[count++].x = tokenx * i + x1;
+			}
+			return;
+		}
 		VECTOR4 col(0, 0, 0,1);
 
 		int deltax = x1 - x2;
@@ -151,25 +174,28 @@ public :
 		if (deltax * tokenx > deltay *tokeny)
 			movey = true;
 		float error = 0;
-		float deltaerr = (float) deltay / deltax;
+		float deltaerr;
 		if (movey) {
 			int x = x1;
-			for (int y = y1; y < y2; y+=tokeny) {
+			for (int y = y1; abs (y- y2 ) > 0.5; y+=tokeny) {
 				//draw point  
-				m_buffer.WriteToColorBuffer(x, y, &col);
+				//m_buffer.WriteToColorBuffer(x, y, &col);
+				point[count].x = x; point[count++].y = y;
+				deltaerr = (float)  deltax/deltay;
 				error = error + deltaerr;
-				while (abs(error) >= 0.5) {
+				if (abs(error) >= 0.5) {
 					x += tokenx;
-					error -= tokenx;
-					m_buffer.WriteToColorBuffer(x, y, &col);
+					error -= tokenx; 
 				}
 			}
 		}
 		else {
 			int y = y1;
 			for (int x = x1; abs(x - x2)> 0.5; x+=tokenx) {
-				m_buffer.WriteToColorBuffer(x, y, &col);
+			//	m_buffer.WriteToColorBuffer(x, y, &col);
 				//draw point  
+				deltaerr = (float)deltay / deltax;
+				point[count].x = x; point[count++].y = y;
 				error = error + deltaerr;
 				if (abs(error) >= 0.5) {
 					y += tokeny;
@@ -177,6 +203,50 @@ public :
 				}
 			}
 		}
+	}
+	*/
+
+	void DrawLine2(int x0, int y0 , int x1 , int y1,VECTOR2 * point) {   
+		bool steep = abs(y1 - y0) > abs(x1 - x0);
+		if (steep) {
+			swap(x0, y0);
+			swap(x1, y1);
+
+		}
+		if (x0 > x1) {
+			swap(x0, x1);
+			swap(y0, y1);
+		}
+
+		int deltax = x1 - x0;
+		int deltay = abs(y1 - y0);
+		int error = deltax / 2;
+		int ystep;
+		int  y = y0;
+
+		if (y0 < y1) {
+			ystep = 1;
+		}
+		else
+			ystep = -1;
+		int count = 0;
+		for (int i = 0; x0 + i < x1; i++) {
+			if (steep) {
+				point[count].x = y;
+				point[count].y = x0 + i; 
+			}
+			else {
+				point[count].x = x0 + i;
+				point[count].y = y;
+			} 
+			error = error - deltay;
+			if (error < 0)
+			{
+				y = y + ystep;
+				error = error + deltax;
+			}
+		}
+
 	}
 	void VertexShader(VECTOR4& viewDir,VERT& A ) {
 
@@ -199,26 +269,27 @@ public :
 		dot(A.color, A.color, sth*1.2 );
 
 	}
-	void DrawPoint(float & depth,VERT*A,VERT* B ,VERT* C , VECTOR4& P, VECTOR4 & res ,VECTOR4& Col) {
+	void DrawPoint(float & depth,VERT*A,VERT* B ,VERT* C , int Px,int Py, VECTOR4 & res ,VECTOR4& Col) {
 
 
-		depth = SampleDepth(A->position, B->position, C->position, &P);
-		P.z = depth;
-		SampleColor(A->position, B->position, C->position, &P, &res);
-		if (  ValidScreamPos(P.x, P.y) && depth > m_buffer.GetZBufferValue(P.x, P.y)) {
-			m_buffer.WriteToZBuffer(depth, P.x, P.y);
+		depth = SampleDepth(A->position, B->position, C->position, Px,Py);
+		float Pz = depth;
+		SampleColor(A->position, B->position, C->position, Px,Py,Pz, &res);
+		if (  ValidScreamPos(Px, Py) && depth > m_buffer.GetZBufferValue(Px, Py)) {
+			m_buffer.WriteToZBuffer(depth, Px, Py);
 			Col.x = A->color->x * res.x + B->color->x * res.y + C->color->x * res.z;
 			Col.y = A->color->y * res.x + B->color->y * res.y + C->color->y * res.z;
 			Col.z = A->color->z * res.x + B->color->z * res.y + C->color->z * res.z;
 
-			m_buffer.WriteToColorBuffer(P.x, P.y, &Col);
+			m_buffer.WriteToColorBuffer(Px, Py, &Col);
 		}
 	}
 };
 
 void PipelineController::RenderAll() {
 	m_buffer.ClearColBuffer(m_penCol);
-	DrawLine2(1, 1,20, 200);
+	VECTOR2 aa[2000];
+	DrawLine2(821,755,812, 727,aa);
 	for (int i = 0; i < targetLength; i++) {
 		RenderTarget(*m_renderTargets[i]);
 	}
@@ -254,6 +325,7 @@ void PipelineController::RenderTarget(Object &  object) {
 		VertexShader(viewDir, B);
 		VertexShader(viewDir, C);
 	}
+	
 	m_cam.GetClipSpaceTransfromVert(&object);
 	m_cam.GetUV(&object);
 	VECTOR2 va, vb, vc;
@@ -262,9 +334,115 @@ void PipelineController::RenderTarget(Object &  object) {
 		a = object.prefab->f[i]->a.x - 1;
 		b = object.prefab->f[i]->b.x - 1;
 		c = object.prefab->f[i]->c.x - 1;
-		DrawTriangle3(&(object.verts[a]), &(object.verts[b]), &(object.verts[c]));
+		VECTOR2 vsss[1920];
+		DrawLine2(object.verts[a].position->x, object.verts[a].position->y, object.verts[b].position->x,object.verts[b].position->y, vsss);
+		DrawLine2(object.verts[a].position->x, object.verts[a].position->y, object.verts[c].position->x, object.verts[c].position->y, vsss);
+		DrawLine2(object.verts[c].position->x, object.verts[c].position->y, object.verts[b].position->x, object.verts[b].position->y, vsss);
+		DrawTriangle3(&(object.verts[a]), &(object.verts[b]), &(object.verts[c])); 
+	} 
+} 
+/*
+void PipelineController::DrawTriangle4(VERT* A, VERT* B, VERT * C, bool recurse) {
+	{
+
+		if (recurse) {
+			if ((A->position->y == B->position->y || A->position->y == C->position->y)) {
+				if (A->position->y == B->position->y) {
+					DrawTriangle3(C, B, A, false);
+					return;
+				}
+				if (A->position->y == C->position->y) {
+					DrawTriangle3(B, C, A, false);
+					return;
+				}
+			} 
+		}
+		 
+		int sizeAB = 0,sizeAC = 0;
+		if (abs(A->position->y - B->position->y) > abs(A->position->x - B->position->x)) {
+			sizeAB =abs( A->position->y - B->position->y ) ;
+		}
+		else {
+			sizeAB = abs(A->position->x - B->position->x);
+		}
+		VECTOR2 pointAB [1920] , pointAC[1920];
+		if (abs(A->position->y -C->position->y) > abs(A->position->x -C->position->x)) {
+			sizeAC = abs(A->position->y - C->position->y);
+		}
+		else {
+			sizeAC = abs(A->position->x - C->position->x);
+		}
+		DrawLine2(A->position->x, A->position->y, B->position->x, B->position->y,pointAB);
+		DrawLine2(A->position->x, A->position->y, C->position->x, C->position->y, pointAC);
+
+		int sizeMin = 0;
+		if (abs(A->position->y - B->position->y) > abs(A->position->y - C->position->y)) {
+			sizeMin = sizeAC;
+		}
+		else
+			sizeMin = sizeAB;
+		VECTOR4 P, res, Col;
+		float depth;
+		for (int i = 0; i < sizeMin; i++)  {
+			for (int p = pointAB[i].x; p <= pointAC[i].x; p++) {
+				//draw point p , y  here 
+				P.x = p; P.y = pointAB[i].y;
+				DrawPoint(depth, A, B, C, P, res, Col);
+			} 
+		}
+		if (pointAB[sizeAB - 1].y != pointAC[sizeAC - 1].y) { 
+			VECTOR2 posOne, posTwo,posC; 
+			posOne = pointAB[sizeAB - 1];
+			posTwo = pointAC[sizeAC - 1];
+			int i;
+			bool ac = false;
+			if (abs(A->position->y - posOne.y) > abs(A->position->y - posTwo.y)) {
+				
+				for (i = 0; i < sizeAB; i++) {
+					if (pointAB[i].y == posTwo.y) {
+						posC = pointAB[i];
+						break;
+					}
+				}
+			}
+			else {
+				ac = true;
+				for (i = 0; i < sizeAC; i++) {
+					if (pointAC[i].y == posOne.y) {
+						posC = pointAC[i];
+						break;
+					}
+				} 
+			}
+			int sizeOT;
+			if (abs(posOne.y - posTwo.y) > abs(posOne.x - posTwo.x)) {
+				sizeOT = abs(posOne.y - posTwo.y);
+			}
+			else
+				sizeOT = abs(posOne.x - posTwo.x);
+			VECTOR2 pointOT[1920];
+			DrawLine2(posOne.x, posOne.y, posTwo.x, posTwo.y,pointOT);
+			int maxsize;
+			if (ac)
+				maxsize = sizeAC;
+			else
+				maxsize = sizeAB;
+			for (int j = 0; j < sizeOT && i + j < maxsize; ) {
+				j++; 
+				//raster here
+				if (ac) { 
+					for (int p = pointOT[j].x; p <= pointAC[i + j].x; p++) {
+						//draw point p , y  here 
+						P.x = p; P.y = pointOT[j].y;
+						DrawPoint(depth, A, B, C, P, res, Col); 
+					}
+				}
+			}
+
+
+		}
 	}
-}
+}*/
 void PipelineController::DrawTriangle3(VERT* A, VERT* B, VERT * C, bool recurse ) {
 	{
 		if (recurse == true) {
@@ -288,7 +466,7 @@ void PipelineController::DrawTriangle3(VERT* A, VERT* B, VERT * C, bool recurse 
 			DrawTriangle3(C, B, A, false);
 		}
 
-		float step = 0.3, dis = 0.3;
+		float step =1, dis = 0.3;
 		VECTOR2 delAB, delAC;
 		VECTOR4	drawPointAB, drawPointAC;
 		delAB.x = B->position->x - A->position->x;
@@ -316,22 +494,21 @@ void PipelineController::DrawTriangle3(VERT* A, VERT* B, VERT * C, bool recurse 
 		else
 			dir = 1;
 		y += dir;
-		VECTOR4 res, P, Col;
+		VECTOR4 res,  Col;
 		float depth = -99;
-
+		int Px, Py;
 		 
 
 		while (sqdistance2D(&drawPointAB, B->position) > dis)
-		{ 
-			
+		{  
 			int i = drawPointAB.x, j = drawPointAB.y;
-			P.x = i; P.y = j;
-			DrawPoint(depth, A, B, C, P, res, Col);
+			Px = i; Py = j;
+			DrawPoint(depth, A, B, C, Px,Py, res, Col);
 			drawPointAB.x += delAB.x;
 			drawPointAB.y += delAB.y;
 			i = drawPointAB.x, j = drawPointAB.y;
-			P.x = i; P.y = j;
-			DrawPoint(depth, A, B, C, P, res, Col);
+			Px = i; Py = j;
+			DrawPoint(depth, A, B, C, Px,Py, res, Col);
 			if (j != y) {
 				//draw point   
 				continue;
@@ -339,25 +516,26 @@ void PipelineController::DrawTriangle3(VERT* A, VERT* B, VERT * C, bool recurse 
 			while (sqdistance2D(&drawPointAC, C->position) > dis)
 			{
 				int k = drawPointAC.x, w = drawPointAC.y;
-				P.x = k; P.y = w;
-				DrawPoint(depth, A, B, C, P, res, Col);
+				Px = k; Py = w;
+				DrawPoint(depth, A, B, C, Px,Py, res, Col);
 				drawPointAC.x += delAC.x;
 				drawPointAC.y += delAC.y;
 				k = drawPointAC.x, w = drawPointAC.y;
-				P.x = k; P.y = w;
-				DrawPoint(depth, A, B, C, P, res, Col);
+				Px = k; Py = w;
+				DrawPoint(depth, A, B, C, Px,Py, res, Col);
 				if (w != y)
 				{
 					//draw point   
 					continue;
 				}
 				int x = min(i, k), xm = max(i, k);
-				P.y = y;
+				//cout << i <<"  " <<j<< " " << k << " " << w<< endl;
 				for (int ii = 0; x + ii < xm; ii++) {
-					P.x = x + ii;  
-					DrawPoint(depth, A, B, C, P, res, Col);
+					Px = x + ii;  
+					Py = y;
+					DrawPoint(depth, A, B, C, Px,Py, res, Col);
 				}
-				y += dir;
+				y += dir; 
 				break;
 			} 
 
