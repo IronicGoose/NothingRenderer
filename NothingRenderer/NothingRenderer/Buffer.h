@@ -66,14 +66,7 @@ public:
 	void SwapBuffer() {
 		m_isSwap = !m_isSwap;
 	}
-	void Antialising();
 }; 
-
-void Buffer::Antialising() {
-
-
-
-}
 
 Buffer::Buffer()
 { 

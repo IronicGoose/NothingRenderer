@@ -102,7 +102,7 @@ public:
 				geomery->normalCount++;
 
 			}
-			if (token == "f") {
+			if (token == "f" && objname != "bunny") {
 				FACEINFO * face = new FACEINFO();
 				string temp;
 				ss >> temp;
@@ -115,12 +115,49 @@ public:
 				geomery->f.push_back(face);
 				geomery->faceCount++;
 			}
+			if (token == "f" && objname == "bunny") {
+				FACEINFO * face = new FACEINFO();
+				string temp;
+				ss >> temp;
+				SplitBunnyString(temp, face->a);
+				ss >> temp;
+				SplitBunnyString(temp, face->b);
+				ss >> temp;
+				SplitBunnyString(temp, face->c);
+				//				cout << temp;
+				geomery->f.push_back(face);
+				geomery->faceCount++;
+			}
 		}
 		geomery->vertCount = vertCount;
 		geomery->name = objname;
 		objFile.close(); 
 		return geomery;
 		
+	}
+	void SplitBunnyString(const string& s, VECTOR4& out) {
+
+		int i = 0, j = 0;
+		int count = 0;
+		int res[3];
+		for (int i = 0; s[i] != '\0'; i++) {
+
+			for (j = i; s[j] != '\0'; j++) {
+				if (s[j] == '/')
+				{ 
+					break;
+				}
+			}
+			res[count++] = stoi(s.substr(i, j - i + 1));
+			i = j;
+			if (s[i] == '\0')
+				break;
+			j++;
+			i++;
+		}
+		out.x = res[0]; 
+		out.z = res[1];
+
 	}
 
 	void SplitObjString(const string& s, VECTOR4& out) {
@@ -160,6 +197,9 @@ public:
 		}
 		if (objname == "sphere") {
 			filePath = "./Objects/sphere.obj";
+		}
+		if (objname == "bunny") {
+			filePath = "./Objects/bunny.obj";
 		}
 		const GEOMETRY* geometry = CreatePrefab(objname, filePath);
 		prefabs.push_back(*geometry);
