@@ -15,25 +15,31 @@ public :
 	string name;
 	vector<VECTOR4*> v; 
 	vector<VECTOR4*> n;
+	vector<VECTOR2*> t;
 	vector<FACEINFO*> f;
 	int vertCount;
 	int faceCount; 
 	int normalCount;
+	int tCount;
 	GEOMETRY() { 
 	}
 	~GEOMETRY() { 
 	}
 };
 class  VERT {
-public :
-	
+public : 
 	VECTOR4 * position;
+	VECTOR2I* uv;
+	float zValue;
 	VECTOR4 * normal;
 	VECTOR4 * color; 
+	VECTOR2* tv;
 	VERT::VERT() {
 		position = new VECTOR4();
 		normal = new VECTOR4();
 		color = new VECTOR4();
+		uv = new VECTOR2I();
+		tv = new VECTOR2();
 		color->x = 0; color->y = 0; color->z = 0; color->w = 1;
 		normal->w = 0;
 		position->w = 1;
@@ -101,6 +107,12 @@ public:
 				geomery->n.push_back(vec); 
 				geomery->normalCount++;
 
+			}
+			if (token == "vt" && objname != "bunny") {
+				VECTOR2* vec = new VECTOR2();
+				ss >> vec->x >> vec->y;
+				geomery->t.push_back(vec);
+				geomery->tCount++; 
 			}
 			if (token == "f" && objname != "bunny") {
 				FACEINFO * face = new FACEINFO();

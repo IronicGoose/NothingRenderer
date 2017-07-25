@@ -50,7 +50,7 @@ public:
 		m_ZBuffer[index] = v;
 	}
 
-	void WriteToColorBuffer(int x, int y, VECTOR4 * col) {
+	void WriteToColorBuffer(int x, int y, const VECTOR4 * col) {
 		int index = y* m_width + x; 
 		copy(col, &GetWriteBuffer()[index]);
 	}

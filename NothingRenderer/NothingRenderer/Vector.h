@@ -12,6 +12,23 @@ namespace VECTOR {
 		}
 		VECTOR4::VECTOR4(){}
 	};
+	struct VECTOR4I {
+		int x, y, z, w;
+		VECTOR4I::VECTOR4I(int r, int g, int b) {
+			x = r; y = g; z = b; w = 0;
+		}
+		VECTOR4I::VECTOR4I(int r, int g, int b, int a) {
+			x = r; y = g; z = b; w = a;
+		}
+		VECTOR4I::VECTOR4I() {}
+	};
+	struct VECTOR2I {
+		int x, y;
+		VECTOR2I::VECTOR2I(int r, int g) {
+			x = r; y = g; 
+		}
+		VECTOR2I::VECTOR2I() {}
+	};
 	struct VECTOR2 {
 		float x, y;
 		VECTOR2::VECTOR2(float a ,float b) {
@@ -19,7 +36,35 @@ namespace VECTOR {
 		}
 		VECTOR2::VECTOR2(){}
 	};
-	
+	struct VECTOR3 {
+		float x, y, z;
+		VECTOR3::VECTOR3(float a, float b, float c) {
+			x = a; y = b;  z = c;
+		}
+		VECTOR3(){}
+	};
+	void crossV3(VECTOR3& res, VECTOR3& A,VECTOR3 & B) {
+		res.x = A.y * B.z - A.z * B.y;
+		res.y = A.z * B.x - A.x * B.z;
+		res.z = A.x * B.y - A.y * B.x;
+	}
+	float  dotV3(VECTOR3& A, VECTOR3 &B) {
+		return A.x * B.x + A.y * B.y + A.z * B.z;
+	}
+	float  dotV3(VECTOR3& A, VECTOR4 &B) {
+		return A.x * B.x + A.y * B.y + A.z * B.z;
+	}
+	void normalized(VECTOR3 & re) {
+		float abs = sqrt(re.x * re.x + re.y * re.y + re.z * re.z);
+		re.x = re.x / abs;
+		re.y = re.y / abs; 
+		re.z = re.z / abs; 
+	}
+	void normalized(VECTOR2 & re) {
+		float abs = sqrt(re.x * re.x + re.y * re.y );
+		re.x = re.x / abs;
+		re.y = re.y / abs; 
+	}
 	void normalized(VECTOR2* n) {
 		float abs =	sqrt( n->x* n->x + n->y * n->y );
 		n->x = n->x / abs; 
@@ -38,7 +83,15 @@ namespace VECTOR {
 		return (a->x - b->x) * (a->x - b->x) + (a->y - b->y)*(a->y - b->y);
 	}
 
-
+	float sqdistance2D(VECTOR2& a, VECTOR2& b) {
+		return (a.x - b.x) * (a.x - b.x) + (a.y - b.y)*(a.y - b.y);
+	}
+	float distance2D(VECTOR2& a, VECTOR2& b) {
+		return sqrt( (a.x - b.x) * (a.x - b.x) + (a.y - b.y)*(a.y - b.y) );
+	}
+	float distance2D(VECTOR2I& a, VECTOR2I& b) {
+		return sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y)*(a.y - b.y));
+	}
 	float dot3x3(VECTOR4* a, VECTOR4* b )  { 
 		
 		return a->x *b->x + a->y * b->y + a->z * b->z ;
@@ -55,6 +108,10 @@ namespace VECTOR {
 		to->y = from->y;
 		to->z = from->z;
 		to->w = from->w;
+	}
+	void copy(const VECTOR2* from, VECTOR2* to) {
+		to->x = from->x;
+		to->y = from->y; 
 	}
 	VECTOR4* dot(VECTOR4*res, VECTOR4* a, float b) { 
 		res->x = a->x * b; 

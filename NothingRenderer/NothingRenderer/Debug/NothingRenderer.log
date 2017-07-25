@@ -1,5 +1,7 @@
 ﻿  main.cpp
-d:\rendererreference\nothingrenderer-fa70042b0bca85d0005654009b0e76d5ac2f6e69\nothingrenderer\nothingrenderer\pipelinecontroller.h(361): warning C4101: “fa”: 未引用的局部变量
-d:\rendererreference\nothingrenderer-fa70042b0bca85d0005654009b0e76d5ac2f6e69\nothingrenderer\nothingrenderer\pipelinecontroller.h(574): warning C4715: “PipelineController::GetObject”: 不是所有的控件路径都返回值
-  NothingRenderer.vcxproj -> D:\RendererReference\NothingRenderer-fa70042b0bca85d0005654009b0e76d5ac2f6e69\NothingRenderer\Debug\NothingRenderer.exe
-  NothingRenderer.vcxproj -> D:\RendererReference\NothingRenderer-fa70042b0bca85d0005654009b0e76d5ac2f6e69\NothingRenderer\Debug\NothingRenderer.pdb (Partial PDB)
+d:\rendererreference\nothingrenderer\nothingrenderer\nothingrenderer\pipelinecontroller.h(311): warning C4101: “nc”: 未引用的局部变量
+d:\rendererreference\nothingrenderer\nothingrenderer\nothingrenderer\pipelinecontroller.h(311): warning C4101: “na”: 未引用的局部变量
+d:\rendererreference\nothingrenderer\nothingrenderer\nothingrenderer\pipelinecontroller.h(311): warning C4101: “nb”: 未引用的局部变量
+d:\rendererreference\nothingrenderer\nothingrenderer\nothingrenderer\pipelinecontroller.h(374): warning C4715: “PipelineController::GetObject”: 不是所有的控件路径都返回值
+  NothingRenderer.vcxproj -> D:\RendererReference\NothingRenderer\NothingRenderer\Debug\NothingRenderer.exe
+  NothingRenderer.vcxproj -> D:\RendererReference\NothingRenderer\NothingRenderer\Debug\NothingRenderer.pdb (Partial PDB)

@@ -38,7 +38,7 @@
     <ClInclude Include="Buffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Rasterization.h">
+    <ClInclude Include="BMPManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
