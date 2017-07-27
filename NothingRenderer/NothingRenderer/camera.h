@@ -55,7 +55,7 @@ public :
 			matrixdot(vs->verts[i].position, vs->verts[i].position, ma); 
 			vs->verts[i].uv->x =  (int)halfw* (1+ vs->verts[i].position->x / vs->verts[i].position->w );
 			vs->verts[i].uv->y  =  (int)halfh* (1+  vs->verts[i].position->y / vs->verts[i].position->w );
-			vs->verts[i].position->x = halfw* (1 + vs->verts[i].position->x / vs->verts[i].position->w);
+			vs->verts[i].position->x =(int)	halfw* (1 + vs->verts[i].position->x / vs->verts[i].position->w);
 			vs->verts[i].position->y =(int) halfh* (1 + vs->verts[i].position->y / vs->verts[i].position->w);
 			vs->verts[i].position->z = vs->verts[i].position->w;
 			vs->verts[i].position->w = 1 / vs->verts[i].position->w;

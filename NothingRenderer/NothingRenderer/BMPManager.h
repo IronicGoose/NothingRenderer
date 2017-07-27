@@ -20,21 +20,11 @@ public :
 		copy(&white, &col);
 		for (int i = 0; i < 200; i++) {
 			for (int j = 0; j < 200; j++) {
-				if (j % 50 == 0) {
-					if (triggerA)
-						copy(&black, &col);
-					else
-						copy(&white, &col);
-					triggerA = !triggerA;
+				if ((int)((i + j) * 0.05) % 2 == 0) {
+					BMPColors[i* width + j] = white;
 				}
-				if (j % 50 == 0) {
-					if (triggerB)
-						copy(&black, &col);
-					else
-						copy(&white, &col);
-					triggerB = !triggerB;
-				}
-				copy(&col, &BMPColors[i * width + j]);
+				else
+					BMPColors[i * width + j] = black; 
 			}
 		} 
 

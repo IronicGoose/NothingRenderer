@@ -1,2 +1,5 @@
-﻿  NothingRenderer.vcxproj -> D:\RendererReference\NothingRenderer\NothingRenderer\Debug\NothingRenderer.exe
+﻿  main.cpp
+d:\rendererreference\nothingrenderer\nothingrenderer\nothingrenderer\pipelinecontroller.h(137): warning C4101: “total”: 未引用的局部变量
+d:\rendererreference\nothingrenderer\nothingrenderer\nothingrenderer\pipelinecontroller.h(447): warning C4715: “PipelineController::GetObject”: 不是所有的控件路径都返回值
+  NothingRenderer.vcxproj -> D:\RendererReference\NothingRenderer\NothingRenderer\Debug\NothingRenderer.exe
   NothingRenderer.vcxproj -> D:\RendererReference\NothingRenderer\NothingRenderer\Debug\NothingRenderer.pdb (Partial PDB)

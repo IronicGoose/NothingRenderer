@@ -1,12 +1,14 @@
 #pragma once
 #include"Vector.h"
 using namespace VECTOR;
+#include<mutex>	
 class Buffer
 {
 	int m_width, m_height;
 	float* m_ZBuffer;
 	bool m_isSwap = false;
 	VECTOR::VECTOR4 * m_frontColorBuffer,*m_backColorBuffer;
+	mutex m_Locker;
 public:
 	Buffer();
 	~Buffer();
@@ -45,14 +47,18 @@ public:
 		}
 	}
 
-	void WriteToZBuffer(float v,int x ,int y ) { 
+	void WriteToZBuffer(float v,int x ,int y ) {
+		m_Locker.lock();
 		int index = y* m_width + x;
 		m_ZBuffer[index] = v;
+		m_Locker.unlock();
 	}
 
 	void WriteToColorBuffer(int x, int y, const VECTOR4 * col) {
+		m_Locker.lock();
 		int index = y* m_width + x; 
 		copy(col, &GetWriteBuffer()[index]);
+		m_Locker.unlock();
 	}
 	float  GetZBufferValue(int x, int y) { 
 		int index = y* m_width + x;
