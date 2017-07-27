@@ -70,8 +70,7 @@ public:
 
 Buffer::Buffer()
 { 
-}
-
+} 
 Buffer::~Buffer()
 {
 	delete[] m_ZBuffer;

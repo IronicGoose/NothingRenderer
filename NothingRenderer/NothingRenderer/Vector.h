@@ -207,18 +207,21 @@ namespace MATRIX {
 		ma->val[1][1] = 1;
 		ma->val[0][0] = 1;
 	}
-	void GenerateRotateMatrix(VECTOR4& ax,  MATRIX4x4* ma) { 
+	void GenerateRotateMatrix(VECTOR4& ax, MATRIX4x4* ma) {
 		normalizedVector4(&ax);
-		ma->val[0][0] = 1 - 2 *(ax.y * ax.y + ax.z * ax.z);
-		ma->val[1][0] = 2 * (ax.x * ax.y - ax.z * ax.w);
-		ma->val[2][0] = 2 * (ax.x * ax.z + ax.y * ax.w);
-		ma->val[0][1] = 2 * (ax.x * ax.y + ax.w * ax.z);
+		ma->val[0][0] = 1 - 2 * (ax.y * ax.y + ax.z * ax.z);
+		ma->val[1][0] = 2 * (ax.x * ax.y + ax.z * ax.w);
+		ma->val[2][0] = 2 * (ax.x * ax.z - ax.y * ax.w);
+		ma->val[0][1] = 2 * (ax.x * ax.y - ax.w * ax.z);
 		ma->val[1][1] = 1 - 2 * (ax.x * ax.x + ax.z * ax.z);
-		ma->val[2][1] = 2 * (ax.y * ax.z - ax.x * ax.w);
-		ma->val[0][2] = 2 * (ax.x * ax.z - ax.y * ax.w);
-		ma->val[1][2] = 2 * (ax.y * ax.z + ax.x * ax.w);
+		ma->val[2][1] = 2 * (ax.y * ax.z+ ax.x * ax.w);
+		ma->val[0][2] = 2 * (ax.x * ax.z + ax.y * ax.w);
+		ma->val[1][2] = 2 * (ax.y * ax.z - ax.x * ax.w);
 		ma->val[2][2] = 1 - 2 * (ax.x * ax.x + ax.y * ax.y);
-		ma->val[3][3] = 1;
+		ma->val[3][3] = 1; 
+
+
+
 		/*
 		ma->val[0][0] = c + ax->x * ax->x * (1 - c);
 		ma->val[0][1] =ax->x * ax->y *(1 - c + ax->z * s);
@@ -228,8 +231,22 @@ namespace MATRIX {
 		ma->val[1][2] = ax->y * ax->z  * (1 - c) + ax->x  * s;
 		ma->val[2][0] = ax->x * ax->z *(1 - c) + ax->y * s;
 		ma->val[2][1] = ax->y *ax->z *(1 - c) - ax->x *s;
-		ma->val[2][2] = c + ax->z * ax->z *(1 - c); 
-		*/
+		ma->val[2][2] = c + ax->z * ax->z *(1 - c); */
 
 	}
+	/*
+	void GenerateRotateMatrix(VECTOR4& a,  MATRIX4x4* ma) { 
+		normalizedVector4(&a);
+		ma->val[0][0] = a.w * a.w + a.x * a.x - a.y * a.y - a.z * a.z;
+		ma->val[1][0] = 2 * (a.x* a.y - a.w * a.z);
+		ma->val[2][0] = 2 * (a.x * a.z + a.w * a.y);
+		ma->val[0][1] = 2 * (a.x * a.y + a.w * a.z);
+		ma->val[1][1] = 1 - 2 * (a.w* a.w - a.x * a.x +a.y * a.y - a.z * a.z );
+		ma->val[2][1] = 2 * (a.y * a.z - a.w * a.x);
+		ma->val[0][2] = 2 * (a.x * a.z - a.w * a.y );
+		ma->val[1][2] = 2 * (a.y * a.z + a.w * a.x );
+		ma->val[2][2] = 1 - 2 * (a.w * a.w - a.x * a.x - a.y * a.y + a.z * a.z	 );
+		ma->val[3][3] = 1; 
+
+	}*/
 }

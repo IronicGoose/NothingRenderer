@@ -54,9 +54,9 @@ public :
 	}
 	void ShowBMPPicture() { 
 		int w = m_BMPManager.width, h = m_BMPManager.height;
-		for (int i = 0; i < h - 1; i++) {
-			for (int j = 0; j < w - 1; j++) {
-				m_buffer.WriteToColorBuffer(j, i, m_BMPManager.GetBMPColor(j/w, i/h));
+		for (int i = 1; i <= h; i++) {
+			for (int j = 1; j <= w ; j++) {
+				m_buffer.WriteToColorBuffer(j, i, m_BMPManager.GetBMPColor(j, i));
 			}
 		}
 	}
@@ -98,12 +98,8 @@ public :
 			matrixdot(obj->verts[i].normal, obj->prefab->n[i], rotateMatrix); 
 		}
 		for (int i = 0; i < obj->prefab->vertCount; i++) {
-			matrixdot(obj->verts[i].position, obj->prefab->v[i], rotateMatrix);
-			//normal convert
-		//	cout << "Rot" << obj->verts[i].position->x << " " << obj->verts[i].position->y << " " << obj->verts[i].position->z << endl; 
-			matrixdot(obj->verts[i].position, obj->verts[i].position, ma);
-
-	//		cout << obj->verts[i].position->x << " " << obj->verts[i].position->y << " " << obj->verts[i].position->z << endl;
+			matrixdot(obj->verts[i].position, obj->prefab->v[i], rotateMatrix); 
+			matrixdot(obj->verts[i].position, obj->verts[i].position, ma); 
 			if (i % 3 == 0) {
 				obj->verts[i].color->x = 1; 
 			}
@@ -118,9 +114,9 @@ public :
 		}
 	} 
 	float TriangleArea(int x0, int y0, int x1, int y1) {
-		return abs((float)((x0 *y1 - x1 * y0)/ 2));
+		return abs((float)((x0 *y1 - x1 * y0)/ 2.0f));
 	}   
-	void SampleColor(VECTOR4* A , VECTOR4 * B ,  VECTOR4* C,  float Px ,float Py , float Pz, VECTOR3* res) {
+	void SampleColor(VECTOR4* A , VECTOR4 * B ,  VECTOR4* C,  float Px ,float Py , float pw, VECTOR3* res) {
 		float a, b, c, total;
 		float ax, ay, bx, by, cx, cy;
 		ax = A->x /A->w;
@@ -129,8 +125,8 @@ public :
 		by = B->y /B->w;
 		cx = C->x /C->w;
 		cy = C->y /C->w;
-		Px = Px  /Pz;
-		Py = Py /Pz;
+		Px = Px  /pw;
+		Py = Py /pw;
 		c = TriangleArea(ax - Px, ay - Py, bx - Px, by - Py);
 		b = TriangleArea(ax - Px,ay - Py, cx - Px, cy - Py);
 		a = TriangleArea(bx - Px, by - Py, cx - Px, cy - Py);
@@ -141,7 +137,7 @@ public :
 		res->x = a;
 		res->y = b;
 		res->z = c; 
-	}
+	} 
 	float SampleDepth(VECTOR4* A  ,VECTOR4 * B,    VECTOR4* C ,int Px,int Py) {
 		float a, b, c, total;
 		c = TriangleArea(A->x - Px, A->y - Py, B->x - Px, B->y - Py);
@@ -169,39 +165,141 @@ public :
 		float  sth = dot3x3(&r, &viewDir);
 		sth = sth *0.5 + 0.5; 
 		sth = sth * sth *sth;
-		amb = amb * 0.5 + 0.5;
-		 
+		amb = amb * 0.5 + 0.5; 
 		
 		dot(A.color, A.color, (sth+amb) * m_lightIntense );
 
 	}  
 	struct DrawTrianglePoint {
 		float x, y, tarX, tarY;
+		VERT* FROM,* TO;
+		int count;
+		int dis;
 		VECTOR2 dir; 
 		void Move() {
 			x += dir.x; y += dir.y;
 		}
 	};
-	void Swap(DrawTrianglePoint& A, DrawTrianglePoint& B) {
-		DrawTrianglePoint& C = A;
-		A = B;
-		B = C;
+	void Swap(DrawTrianglePoint& a, DrawTrianglePoint& b) {
+		DrawTrianglePoint c;
+		c.FROM = a.FROM;
+		a.FROM = b.FROM; b.FROM = c.FROM;
+
+		c.TO = a.TO;
+		a.TO = b.TO; b.TO = c.TO;
+
+		c.count = a.count; 
+		a.count = b.count; b.count = c.count;
+
+		c.dis = a.dis; 
+		a.dis = b.dis; b.dis = c.dis;
+
+		c.dir.x = a.dir.x; c.dir.y = a.dir.y;
+		a.dir.x = b.dir.x; a.dir.y = b.dir.y;
+		b.dir.x = c.dir.x; b.dir.y = c.dir.y;
+
+		c.x = a.x; c.y = a.y;
+		a.x = b.x; a.y = b.y; b.x = c.x; b.y = c.y;
+
+
 	}
 	void DrawPoint(DrawTrianglePoint a) {
-		VECTOR4 col(1, 1, 1, 0);
-		if (ValidScreamPos(a.x, a.y))
-			m_buffer.WriteToColorBuffer(a.x, a.y, &col); 
+		if (!ValidScreamPos(a.x, a.y))
+			return;
+		VECTOR4 col(1, 1, 1, 0); 
+		float alpha = 1 -(float)a.count / a.dis;
+		float depth = a.FROM->zValue * alpha + a.TO->zValue * (1 - alpha);
+		if (depth > m_buffer.GetZBufferValue(a.x, a.y)) {
+			m_buffer.WriteToZBuffer(depth, a.x, a.y);
+		}
+		else
+			return;
+		col.x = a.FROM->color->x * alpha + a.TO->color->x * (1- alpha);
+		col.y = a.FROM->color->y * alpha + a.TO->color->y * (1 - alpha);
+		col.z = a.FROM->color->z * alpha + a.TO->color->z * (1 - alpha);  
+		m_buffer.WriteToColorBuffer(a.x, a.y, &col); 
 	}
 	void RasterLine(DrawTrianglePoint a,DrawTrianglePoint b) { 
-		int xl = a.x, xr = b.x;
-		VECTOR4 col(1, 1, 1, 0);
-		if (xl > xr) swap(xl, xr);
-		for (int i = 0; xl + i <= xr; i++) {
-			if(ValidScreamPos(xl+i,a.y))
-				m_buffer.WriteToColorBuffer(xl + i, a.y, &col);
+		int xl = a.x, xr = b.x; 
+		if (xl == xr) {
+			DrawPoint(a);
+			DrawPoint(b);
+			return;
 		}
-		
-	} 
+
+		VECTOR4 colL, colR; 
+		float alpha =1-  (float)a.count / a.dis;/*
+		colL.x = a.FROM->color->x * alpha + a.TO->color->x * (1 - alpha);
+		colL.y = a.FROM->color->y * alpha + a.TO->color->y * (1 - alpha);
+		colL.z = a.FROM->color->z * alpha + a.TO->color->z * (1 - alpha);*/
+		float beta = 1- (float)b.count / b.dis;/*
+		colR.x = b.FROM->color->x * beta + b.TO->color->x * (1 - beta);
+		colR.y = b.FROM->color->y * beta + b.TO->color->y * (1 - beta);
+		colR.z = b.FROM->color->z * beta + b.TO->color->z * (1 - beta);*/
+		float dl = a.FROM->zValue * alpha + a.TO->zValue * (1- alpha), dr = b.FROM->zValue * beta + b.TO->zValue * (1- beta);
+		float wl = a.FROM->position->w * alpha + a.TO->position->w  * (1 - alpha), wr = b.FROM->position->w  * beta + b.TO->position->w  * (1 - beta);
+		float gamma = 0,depth;
+		VECTOR4 col(1, 1, 1, 0); 
+		bool lr = true;
+		if (xl > xr) {
+			swap(xl, xr); 
+			lr = false;
+		} 
+		/*
+		float xa = a.FROM->uv->x / a.FROM->position->w, ya = a.FROM->uv->y / a.FROM->position->w;
+		float xb = a.TO->uv->x / a.TO->position->w, yb = a.TO->uv->y / a.TO->position->w;
+		float xc = b.FROM->uv->x / b.FROM->position->w, yc = b.FROM->uv->y / b.FROM->position->w; 
+		float xd = b.TO->uv->x / b.TO->position->w, yd = b.TO->uv->y / b.TO->position->w; 
+		float disab = sqrt((xa - xb) * (xa - xb) + (ya - yb) * (ya - yb));
+		float discd = sqrt((xc - xd)* (xc - xd) + (yc - yd) * (yc - yd)); 
+
+		float xlw = xl / wl, xrw = xr / wr, ylw = a.y / wl, yrw = a.y / wr;
+
+		float disap = sqrt((xlw - xa) * (xlw - xa) + (ylw - ya) * (ylw - ya));
+		float discp = sqrt((xrw - xc) * (xrw - xc) + (yrw - yc) * (yrw - yc));
+		alpha = disap / disab;
+		beta = discp / discp;
+		float xlu = a.FROM->tv->x * alpha + a.TO->tv->x * (1 - alpha),
+			xlv = a.FROM->tv->y  * alpha + a.TO->tv->y * (1 - alpha);
+		float xru = b.FROM->tv->x * beta + b.TO->tv->x  * (1 - beta),
+			xrv = b.TO->tv->y * beta + b.TO->tv->y * (1 - beta);*/
+		for (int i = 0; xl + i <= xr; i++) {
+			if (!ValidScreamPos(xl + i, a.y))
+				continue;
+			if (lr)
+				gamma = 1 - i / (float)(xr - xl);
+			else
+				gamma = (float)i / (float)(xr - xl);
+			depth = dl * gamma + dr * (1 - gamma);
+			if (depth > m_buffer.GetZBufferValue(xl + i, a.y)) { 
+				m_buffer.WriteToZBuffer(depth, xl + i, a.y); 
+			}
+			else
+				continue; 
+			VECTOR3 res;
+			float pw = wl * gamma + wr * (1 - gamma);
+			/*
+			float xw = (xl + i) / pw;
+			if (lr)
+				gamma = 1 - abs( (xw - xlw) / xrw );
+			else
+				gamma = abs( (xw - xlw) / xrw  );
+			float u = xlu * gamma + xru * (1 - gamma);
+			float v = xlv * gamma + xrv * (1 - gamma);*/ 
+			float u, v;
+			if (a.FROM == b.FROM) {  
+				SampleColor(a.FROM->position, a.TO->position, b.TO->position, xl + i, a.y, pw, &res);
+				u = a.FROM->tv->x * res.x + a.TO->tv->x * res.y + b.TO->tv->x * res.z;
+				v = a.FROM->tv->y * res.x + a.TO->tv->y * res.y + b.TO->tv->y * res.z;
+			}
+			else {
+				SampleColor(a.FROM->position, a.TO->position, b.FROM->position, xl + i, a.y, pw, &res);
+				u = a.FROM->tv->x * res.x + a.TO->tv->x * res.y + b.FROM->tv->x * res.z;
+				v = a.FROM->tv->y * res.x + a.TO->tv->y * res.y + b.FROM->tv->y * res.z;
+			} 
+			m_buffer.WriteToColorBuffer(xl + i, a.y, m_BMPManager.GetBMPColor(u,v));
+		} 
+	}  
 	void DrawTriangle(VERT* A, VERT* B, VERT* C) {
 		int yDir = 1;
 		if (B->uv->y < A->uv->y) {
@@ -221,8 +319,7 @@ public :
 		}
 		if (A->uv->y > B->uv->y)
 			yDir = -1;
-		if (A->uv->y == B->uv->y && A->uv->y == C->uv->y)
-			return;
+		float disAB = distance2D(*(A->uv), *(B->uv)), disAC = distance2D(*(A->uv), *(C->uv));
 		VECTOR2 dir;
 		dir.x = B->uv->x - A->uv->x;
 		dir.y = B->uv->y - A->uv->y;
@@ -230,28 +327,34 @@ public :
 		DrawTrianglePoint ab; ab.dir.x = dir.x, ab.dir.y = dir.y;
 		ab.x = A->uv->x; ab.y = A->uv->y;
 		ab.tarX = B->uv->x; ab.tarY = B->uv->y;
-
+		ab.dis = disAB; ab.count = 0;
 		dir.x = C->uv->x - A->uv->x;
 		dir.y = C->uv->y - A->uv->y;
-		normalized(dir);
+		normalized(dir); ab.FROM = A; ab.TO = B;
 
 		DrawTrianglePoint ac; ac.dir.x = dir.x, ac.dir.y = dir.y;
 		ac.x = A->uv->x; ac.y = A->uv->y;
 		ac.tarX = C->uv->x; ac.tarY = C->uv->y;
-		
-		float disAB = distance2D(*(A->uv), *(B->uv)), disAC = distance2D(*(A->uv), *(C->uv));
-		int countab = 0, countac = 0, y = A->uv->y;
-		for (; countab < disAB && countac < disAC;) { 
+		ac.dis = disAC; ac.count = 0;
+		ac.FROM = A; ac.TO = C;
+		int y = A->uv->y;
+
+		if (A->uv->y == B->uv->y && A->uv->y == C->uv->y)
+		{ 
+			return;
+		}
+		for (; ab.count < disAB && ac.count < disAC;) {  
+
 			while ((int)ab.y != y )
 			{
-				countab++;	ab.x += ab.dir.x; ab.y += ab.dir.y; DrawPoint(ab);
-				if (countab > disAB )
+				ab.count++;	ab.x += ab.dir.x; ab.y += ab.dir.y; DrawPoint(ab);
+				if (ab.count > disAB )
 					break;
 			}
 			while ((int)ac.y != y)
 			{
-				countac++;  ac.Move(); DrawPoint(ac);
-				if (countac > disAC )
+				ac.count++;  ac.Move(); DrawPoint(ac);
+				if (ac.count > disAC )
 					break;
 			} 
 			RasterLine(ab, ac);
@@ -263,34 +366,32 @@ public :
 		DrawTrianglePoint la;
 
 		float disbc = distance2D(*(B->uv), *(C->uv));
-		if (countac >= disAC) {
+		la.count = 0; la.dis = disbc;
+		if (ac.count >= disAC) {
 			la.x = C->uv->x; la.y = C->uv->y;
 			dir.x = B->uv->x - C->uv->x; dir.y = B->uv->y - C->uv->y;
 			normalized(dir); la.dir.x = dir.x; la.dir.y = dir.y; 
+			la.FROM = C; la.TO = B;
 		}
-		if (countab >= disAB) { 
+		if (ab.count >= disAB) { 
 			la.x = B->uv->x; la.y = B->uv->y;
 			dir.x = C->uv->x - B->uv->x; dir.y = C->uv->y - B->uv->y;
 			normalized(dir); la.dir.x = dir.x; la.dir.y = dir.y;
-
-			countab = countac;	Swap(ab, ac); disAB = disAC;
-		}
-		int countbc = 0;
-		cout << y << " " << ab.y << " " << la.y << endl;
-		for (; countab < disAB && countbc < disbc;) {  
+			la.FROM = B; la.TO = C;
+			ab.count = ac.count;	Swap(ab, ac); disAB = disAC;
+		}  
+		for (; ab.count < disAB && la.count < disbc;) {   
 			while ((int)ab.y != y)
 			{
-				countab++;	ab.Move(); DrawPoint(ab);
+				ab.count++;	ab.Move(); DrawPoint(ab);
 			}
 			while ((int)la.y != y)
 			{
-				countbc++;  la.Move(); DrawPoint(la);
+				la.count++;  la.Move(); DrawPoint(la);
 			}
 			RasterLine(ab, la); 
 			y++;
-		}
-
-
+		} 
 	}
 
 };  
@@ -336,14 +437,14 @@ void PipelineController::RenderTarget(Object &  object) {
 	m_cam.GetClipSpaceTransfromVert(&object); 
 	VECTOR2 va, vb, vc;
 	VECTOR4 col(0.1, 0.1, 0.1, 1); 
-	int i = 0 ;  
+	int i =0  ;  
 	VECTOR3 ab, bc, normal;
 	minusV3(&viewDir, m_cam.position, object.position);
 	for (; i < object.prefab->faceCount; i++) {
 		VERT* A,*B, *C;
-		a = object.prefab->f[i]->a.x - 1;
-		b = object.prefab->f[i]->b.x - 1;
-		c = object.prefab->f[i]->c.x - 1;
+		a = object.prefab->f[i]->a.x -1;
+		b = object.prefab->f[i]->b.x -1;
+		c = object.prefab->f[i]->c.x -1;
 		A = &(object.verts[a]); B = &(object.verts[b]); C = &(object.verts[c]); 
 		a = object.prefab->f[i]->a.y - 1;
 		b = object.prefab->f[i]->b.y - 1;
@@ -359,10 +460,37 @@ void PipelineController::RenderTarget(Object &  object) {
 		bc.z = C->zValue - B->zValue;
 		crossV3(normal, ab, bc); 
  		normalized(normal);
-		if (dotV3(normal, viewDir) < 0)
-			continue;    
+		//if (dotV3(normal, viewDir) < 0)
+		//	continue;    
+		A->color->x =(float) i / 8; A->color->y = (float)i / 8; A->color->z = (float)i / 8;
+		B->color->x = (float)i / 8; B->color->y = (float)i / 8; B->color->z = (float)i / 8;
+		C->color->x = (float)i / 8; C->color->y = (float)i / 8; C->color->z = (float)i / 8;
 		DrawTriangle(A, B, C);
-	} 
+	}  
+
+	//VERT* A, *B, *C;
+	//a = object.prefab->f[0]->a.x - 1;
+	//b = object.prefab->f[0]->b.x - 1;
+	//c = object.prefab->f[0]->c.x - 1;
+	//A = &(object.verts[a]); B = &(object.verts[b]); C = &(object.verts[c]);
+	////	a = object.prefab->f[i]->a.y - 1;
+	////	b = object.prefab->f[i]->b.y - 1;
+	////	c = object.prefab->f[i]->c.y - 1;
+	////	copy(object.prefab->t[a], A->tv);
+	////	copy(object.prefab->t[b], B->tv);
+	////	copy(object.prefab->t[c], C->tv);
+	//ab.x = B->uv->x - A->uv->x;
+	//ab.y = B->uv->y - A->uv->y;
+	//ab.z = B->zValue - A->zValue;
+	//bc.x = C->uv->x - B->uv->x;
+	//bc.y = C->uv->y - B->uv->y;
+	//bc.z = C->zValue - B->zValue;
+	//crossV3(normal, ab, bc);
+	//normalized(normal); 
+	//A->color->x = (float)i / 8; A->color->y = (float)i / 8; A->color->z = (float)i / 8;
+	//B->color->x = (float)i / 8; B->color->y = (float)i / 8; B->color->z = (float)i / 8;
+	//C->color->x = (float)i / 8; C->color->y = (float)i / 8; C->color->z = (float)i / 8;
+	//DrawTriangle(A, B, C);
 }   
 Object* PipelineController::GetObject(string name) {
 

@@ -56,9 +56,10 @@ public :
 			vs->verts[i].uv->x =  (int)halfw* (1+ vs->verts[i].position->x / vs->verts[i].position->w );
 			vs->verts[i].uv->y  =  (int)halfh* (1+  vs->verts[i].position->y / vs->verts[i].position->w );
 			vs->verts[i].position->x = halfw* (1 + vs->verts[i].position->x / vs->verts[i].position->w);
-			vs->verts[i].position->y = halfh* (1 + vs->verts[i].position->y / vs->verts[i].position->w);
+			vs->verts[i].position->y =(int) halfh* (1 + vs->verts[i].position->y / vs->verts[i].position->w);
+			vs->verts[i].position->z = vs->verts[i].position->w;
 			vs->verts[i].position->w = 1 / vs->verts[i].position->w;
-			vs->verts[i].zValue = vs->verts[i].position->z / vs->verts[i].position->w;
+			vs->verts[i].zValue =  vs->verts[i].position->w;
 		} 
 	} 
 	void GenerateCamMatrix(VECTOR4* pos, MATRIX4x4* ma) {
@@ -77,8 +78,8 @@ public :
 		res->val[1][1] = tanRes;
 		res->val[2][2] = (-nearZ - farZ) / (nearZ - farZ);
 		res->val[3][2] = 2 * farZ*nearZ / (nearZ - farZ);
-		res->val[2][3] = 1;
+		res->val[2][3] = 1; 
 		return res;
-	}
+	} 
 
 }; 
