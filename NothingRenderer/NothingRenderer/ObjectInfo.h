@@ -9,6 +9,36 @@ struct FACEINFO {
 	VECTOR4 b;
 	VECTOR4	c;
 };
+
+class  VERT {
+public:
+	int vertNum;
+	VECTOR4 * position;
+	VECTOR2I* uv;
+	float zValue;
+	VECTOR4 * normal;
+	VECTOR4 * color;
+	VECTOR2* tv;
+	float lightingCol;
+	VERT::VERT() {
+		position = new VECTOR4();
+		normal = new VECTOR4();
+		color = new VECTOR4();
+		uv = new VECTOR2I();
+		tv = new VECTOR2();
+		color->x = 0; color->y = 0; color->z = 0; color->w = 1;
+		normal->w = 0;
+		position->w = 1;
+	}
+};
+struct VShaderInfo {
+	VERT* A;VERT *B;VERT *C;
+	VECTOR4 normal[3];
+	VECTOR4 pos[3];
+	int order[3];
+	float lightIntense[3];
+
+};
 class GEOMETRY
 {
 public :
@@ -24,25 +54,6 @@ public :
 	GEOMETRY() { 
 	}
 	~GEOMETRY() { 
-	}
-};
-class  VERT {
-public : 
-	VECTOR4 * position;
-	VECTOR2I* uv;
-	float zValue;
-	VECTOR4 * normal;
-	VECTOR4 * color; 
-	VECTOR2* tv;
-	VERT::VERT() {
-		position = new VECTOR4();
-		normal = new VECTOR4();
-		color = new VECTOR4();
-		uv = new VECTOR2I();
-		tv = new VECTOR2();
-		color->x = 0; color->y = 0; color->z = 0; color->w = 1;
-		normal->w = 0;
-		position->w = 1;
 	}
 };
 class Object {

@@ -38,10 +38,12 @@ class PipelineController {
 	BMPManager m_BMPManager;
 	float m_width, m_height;
 	float m_lightIntense;
+	float m_lightDiffuse;
 	mutex m_locker;
 public :
 	int done = 0;
 	int m_threads;
+	bool useVShader = true,useFShader = false;
 	VECTOR4 lightDir;
 	PipelineController();
 	void CreateBuffer(int w, int h) {
@@ -106,11 +108,7 @@ public :
 	}
 	void GetVertsWorldSpace(Object* obj, MATRIX4x4* rotateMatrix, bool normalConvert = false) {
 		MATRIX4x4* ma = new MATRIX4x4();
-		GenerateTransformMatrix(obj->position, ma);
-		for (int i = 0; i < obj->prefab->normalCount; i++) {
-
-			matrixdot(obj->verts[i].normal, obj->prefab->n[i], rotateMatrix); 
-		}
+		GenerateTransformMatrix(obj->position, ma); 
 		for (int i = 0; i < obj->prefab->vertCount; i++) {
 			matrixdot(obj->verts[i].position, obj->prefab->v[i], rotateMatrix); 
 			matrixdot(obj->verts[i].position, obj->verts[i].position, ma); 
@@ -121,10 +119,7 @@ public :
 				obj->verts[i].color->y = 1; 
 			}
 			else
-				obj->verts[i].color->z = 1;
-			obj->verts[i].color->x = 1;
-			obj->verts[i].color->y = 1;
-			obj->verts[i].color->z = 1;
+				obj->verts[i].color->z = 1; 
 		}
 	} 
 	float TriangleArea(float x0, float y0, float x1, float y1) {
@@ -178,26 +173,35 @@ public :
 		a = 1 - b - c;
 		return A->w * a + B->w * b + C->w * c;
 	} 
-	void VertexShader(VECTOR4& viewDir,VERT& A ) {
-		 
-		VECTOR::minusV4(&viewDir,  m_cam.position, A.position);
+	int GetOrder(VShaderInfo i, VERT&  A) {
+		if (i.order[0] == A.vertNum)
+			return 0;
+		else if (i.order[1] == A.vertNum)
+			return 1;
+		else
+			return 2;
+	}
+	void VertexShader(VERT& A ,VShaderInfo & info ) {
+		int order = GetOrder(info, A);
+		VECTOR4 viewDir;
+		VECTOR::minusV4(&viewDir,   A.position, m_cam.position);
 		normalizedVector3(&viewDir, &viewDir);
 		normalizedVector3(A.normal, A.normal);
 		float amb = dot3x3(&lightDir, A.normal);
-		
 		VECTOR4 r;
 		VECTOR::dot(&r,A.normal, 2 * dot3x3 (A.normal,&lightDir));
 
 		minusV3(&r, &r,& lightDir);
-
 		normalizedVector3(&r,&r);
 		float  sth = dot3x3(&r, &viewDir);
 		sth = sth *0.5 + 0.5; 
 		sth = sth * sth *sth;
 		amb = amb * 0.5 + 0.5; 
-		
+		amb *= m_lightDiffuse;
+		info.lightIntense [order] = (sth + amb)	 * m_lightIntense;
+		cout<<"  " << A.vertNum << "   "  << A.lightingCol << endl;
 		dot(A.color, A.color, (sth+amb) * m_lightIntense );
-
+		 
 	}  
 	
 	void Swap(DrawTrianglePoint& a, DrawTrianglePoint& b) {
@@ -239,7 +243,7 @@ public :
 	//	col.z = a.FROM->color->z * alpha + a.TO->color->z * (1 - alpha);  
 		m_buffer.WriteToColorBuffer(a.x, a.y, &col); 
 	}
-	void RasterLine(DrawTrianglePoint a,DrawTrianglePoint b) { 
+	void RasterLine(DrawTrianglePoint a,DrawTrianglePoint b,VShaderInfo info) { 
 
 		VECTOR4 gray(0.5, 0.5, 0.5, 1);
 /*
@@ -257,14 +261,13 @@ public :
 			DrawPoint(a);
 			DrawPoint(b); 
 			return;
-		} 
-		VECTOR4 colL, colR(1,1,1,0); 
+		}  
+		VECTOR4 col(1, 1, 1, 0);
 		float alpha = 1 - (float)a.count / a.dis;
 		float beta = 1- (float)b.count / b.dis; 
 		float dl = a.FROM->zValue * alpha + a.TO->zValue * (1- alpha),
 			dr = b.FROM->zValue * beta + b.TO->zValue * (1- beta);  
 		float gamma = 0,depth;
-		VECTOR4 col(1, 1, 1, 0); 
 		bool lr = true;
 		if (xl > xr) {
 			swap(xl, xr); 
@@ -288,34 +291,40 @@ public :
 			VECTOR3 res; 
 			float u, v;
 
+			float VlightAdjust;
 			if (a.FROM == b.FROM) {     
 				float pw = SampleDepth(a.FROM->position, a.TO->position, b.TO->position, xl + i, a.y);
-
 				SampleColor(a.FROM->position, a.TO->position, b.TO->position, xl + i, a.y, pw, &res);
+				if (res.x < 0 || res.x > 1 || res.y < 0 || res.y > 1 || res.z < 0 || res.z > 1)
+					continue;
+
+				int orderAFrom = GetOrder(info, *a.FROM), orderATO = GetOrder(info, *a.TO), orderBTO = GetOrder(info, *b.TO);
 				u =  a.FROM->tv->x * res.x + a.TO->tv->x * res.y + b.TO->tv->x * res.z;
 				v = a.FROM->tv->y * res.x + a.TO->tv->y * res.y + b.TO->tv->y * res.z;
-				if (res.x < 0 || res.x > 1 || res.y < 0 || res.y > 1 || res.z < 0 || res.z > 1)
-				{ 
-					errorPoint++;
-					continue;
-				}
+				VlightAdjust = res.x *info.lightIntense[orderAFrom] + res.y * info.lightIntense[orderATO]
+					+ res.z *info.lightIntense[orderBTO];
 			}
 			else {
 
 				float pw = SampleDepth(a.FROM->position, a.TO->position, b.FROM->position, xl + i, a.y); 
 				SampleColor(a.FROM->position, a.TO->position, b.FROM->position, xl + i, a.y, pw, &res);
+				if (res.x < 0 || res.x > 1 || res.y < 0 || res.y > 1 || res.z < 0 || res.z > 1)
+					continue;
+				int orderAFrom = GetOrder(info, *a.FROM), orderATO = GetOrder(info, *a.TO), orderBFrom = GetOrder(info, *b.FROM);
 				u = a.FROM->tv->x * res.x + a.TO->tv->x * res.y + b.FROM->tv->x * res.z;
 				v = a.FROM->tv->y * res.x + a.TO->tv->y * res.y + b.FROM->tv->y * res.z;
-				if (res.x < 0 || res.x > 1 || res.y < 0 || res.y > 1 || res.z < 0 || res.z > 1)
-				{
-			//		cout << u << "   " << v << endl;
-			//		cout << "res " << res.x << "  " << res.y << "  " << res.z << endl;
-					errorPoint++;
-					continue;
-				}
-			} 
+				VlightAdjust = res.x *info.lightIntense [orderAFrom] + res.y * info.lightIntense[orderATO]
+					+ res.z *info.lightIntense[orderBFrom];
+
+			}  
 			normalPoint++;
-			m_buffer.WriteToColorBuffer(xl + i, a.y,m_BMPManager.GetBMPColor(u,v));
+			VECTOR4 col(1,1,1,0);
+		//	copy(m_BMPManager.GetBMPColor(u, v), &col);
+			if (useVShader) { 
+				dot(&col, &col, VlightAdjust);
+			}
+
+			m_buffer.WriteToColorBuffer(xl + i, a.y,&col);
 		}
 	//	cout << errorPoint << "  " << " normal point " << normalPoint << endl;
 	}  
@@ -331,7 +340,8 @@ public :
 		col.x = a; col.y = b; col.z = c;
 		m_buffer.WriteToColorBuffer(x,y,&col);
 	}
-	void DrawTriangle(VERT* A, VERT* B, VERT* C) {
+	void RasterizationTriangle(VShaderInfo& info) {
+		VERT* A = info.A, *B = info.B, *C = info.C;
 		int yDir = 1;
 		if (B->uv->y < A->uv->y) {
 			VERT* temp = A;A = B; B = temp;
@@ -388,7 +398,7 @@ public :
 				if (ac.count > disAC )
 					break;
 			} 
-			RasterLine(ab, ac);
+			RasterLine(ab, ac,info);
 			y += yDir;
 		}
 		if (B->uv->y == C->uv->y) {
@@ -420,10 +430,9 @@ public :
 			{
 				la.count++;  la.Move(); DrawPoint(la);
 			}
-			RasterLine(ab, la); 
+			RasterLine(ab, la,info); 
 			y++;
-		} 
-		cout << "do nothing" << endl;
+		}  
 	}
 	void ThreadDone() {
 		m_locker.lock(); 
@@ -431,37 +440,38 @@ public :
 		m_locker.unlock();
 	}
 };  
-void MultiFaceDraw(Object & object , int from ,int to,VECTOR4* viewDir,PipelineController* pipeline) {
-	
-	VECTOR3 ab, bc, normal;
-	int a, b, c; 
-	VERT* A, *B, *C;
-	VECTOR2 va, vb, vc;
-	for (int i = from; i < to; i++) {
-		cout << " draw face " << i << endl;
-		a = object.prefab->f[i]->a.x - 1;
-		b = object.prefab->f[i]->b.x - 1;
-		c = object.prefab->f[i]->c.x - 1;
-		A = &(object.verts[a]); B = &(object.verts[b]); C = &(object.verts[c]);
-		ab.x = B->uv->x - A->uv->x;
-		ab.y = B->uv->y - A->uv->y;
-		ab.z = B->zValue - A->zValue;
-		bc.x = C->uv->x - B->uv->x;
-		bc.y = C->uv->y - B->uv->y;
-		bc.z = C->zValue - B->zValue;
-		crossV3(normal, ab, bc);
-		normalized(normal);
-		if (dotV3(normal, *viewDir) < 0)
-			continue;
-		A->color->x = (float)i / 8; A->color->y = (float)i / 8; A->color->z = (float)i / 8;
-		B->color->x = (float)i / 8; B->color->y = (float)i / 8; B->color->z = (float)i / 8;
-		C->color->x = (float)i / 8; C->color->y = (float)i / 8; C->color->z = (float)i / 8;
-		pipeline->DrawTriangle(A, B, C);
-	}
 
-	pipeline->ThreadDone();
+//
+//void MultiFaceDraw(Object & object , int from ,int to,VECTOR4* viewDir,PipelineController* pipeline) {
+//	
+//	VECTOR3 ab, bc, normal;
+//	int a, b, c; 
+//	VERT* A, *B, *C;
+//	VECTOR2 va, vb, vc;
+//	for (int i = from; i < to; i++) { 
+//		a = object.prefab->f[i]->a.x - 1;
+//		b = object.prefab->f[i]->b.x - 1;
+//		c = object.prefab->f[i]->c.x - 1;
+//		A = &(object.verts[a]); B = &(object.verts[b]); C = &(object.verts[c]);
+//		ab.x = B->uv->x - A->uv->x;
+//		ab.y = B->uv->y - A->uv->y;
+//		ab.z = B->zValue - A->zValue;
+//		bc.x = C->uv->x - B->uv->x;
+//		bc.y = C->uv->y - B->uv->y;
+//		bc.z = C->zValue - B->zValue;
+//		crossV3(normal, ab, bc);
+//		normalized(normal);
+//		if (dotV3(normal, *viewDir) < 0)
+//			continue;
+//	//	A->color->x = (float)i / 8; A->color->y = (float)i / 8; A->color->z = (float)i / 8;
+//	//	B->color->x = (float)i / 8; B->color->y = (float)i / 8; B->color->z = (float)i / 8;
+//	//	C->color->x = (float)i / 8; C->color->y = (float)i / 8; C->color->z = (float)i / 8;
+//		pipeline->RasterizationTriangle(A, B, C);
+//	} 
+//	pipeline->ThreadDone(); 
+//}
 
-}
+
 void PipelineController::RenderAll() {
 	m_buffer.ClearColBuffer(m_penCol);
 	
@@ -500,6 +510,7 @@ PipelineController::PipelineController() {
 	lightDir.x = 0; lightDir.y = 0; lightDir.z = -1; lightDir.w = 0;
 	normalizedVector3(&lightDir, &lightDir);
 	m_lightIntense = 1;
+	m_lightDiffuse = 0.7;
 	m_threads = 5;
 }
 
@@ -517,25 +528,30 @@ void PipelineController::RenderTarget(Object &  object) {
 	GenerateTransformMatrix(object.position, &ma);
 	GetVertsWorldSpace(&object, &rot, true);
 	m_cam.GetCamCoordinateTransformVert(&object);
-	for (int i = 0; i < object.prefab->faceCount; i++) {
-		
+	cout << "term" << endl;
+	VShaderInfo* vInfo = new VShaderInfo[object.prefab->faceCount];
+	for (int i = 0; i < object.prefab->faceCount; i++) { 
 		a = object.prefab->f[i]->a.x - 1;
 		b = object.prefab->f[i]->b.x - 1;
 		c = object.prefab->f[i]->c.x - 1;
 		na = object.prefab->f[i]->a.z - 1;
 		nb = object.prefab->f[i]->b.z - 1;
 		nc = object.prefab->f[i]->c.z - 1;
-		VERT& A = object.verts[a], &B = object.verts[b], &C = object.verts[c];
+		VERT& AA = object.verts[a], &BB = object.verts[b], &CC = object.verts[c]; 
+		AA.vertNum = a; BB.vertNum = b; CC.vertNum = c;
+		copy(object.prefab->n[na], AA.normal);
+		copy(object.prefab->n[nb], BB.normal);
+		copy(object.prefab->n[nc], CC.normal);
+		matrixdot(AA.normal, AA.normal, &rot);
+		matrixdot(BB.normal, BB.normal, &rot);
+		matrixdot(CC.normal, CC.normal, &rot);
 
-		copy(object.prefab->n[na], A.normal);
-		copy(object.prefab->n[nb], B.normal);
-		copy(object.prefab->n[nc], C.normal);
-		matrixdot(A.normal, A.normal, &rot);
-		matrixdot(B.normal, B.normal, &rot);
-		matrixdot(C.normal, C.normal, &rot);
-		VertexShader(viewDir, A);
-		VertexShader(viewDir, B);
-		VertexShader(viewDir, C);
+		vInfo[i].order[0] = AA.vertNum;
+		vInfo[i].order[1] = BB.vertNum;
+		vInfo[i].order[2] = CC.vertNum;
+		VertexShader( AA,vInfo[i]);
+		VertexShader( BB,vInfo[i]);
+		VertexShader( CC,vInfo[i]);
 	}
 	m_cam.GetClipSpaceTransfromVert(&object);
 	VECTOR4 col(0.1, 0.1, 0.1, 1);
@@ -545,7 +561,7 @@ void PipelineController::RenderTarget(Object &  object) {
 
 	//7
 	int i = 0; 
-
+/*
 	for (; i < object.prefab->faceCount; i++) {
 		VERT* A, *B, *C;
 		a = object.prefab->f[i]->a.x - 1;
@@ -580,36 +596,34 @@ void PipelineController::RenderTarget(Object &  object) {
 	{
 
 	}
-	done = 0;  
+	done = 0;  */
 
-	//i = 0;
-	//for (; i < object.prefab->faceCount; i++) {
-	//	VERT* A, *B, *C;
-	//	a = object.prefab->f[i]->a.x - 1;
-	//	b = object.prefab->f[i]->b.x - 1;
-	//	c = object.prefab->f[i]->c.x - 1;
-	//	A = &(object.verts[a]); B = &(object.verts[b]); C = &(object.verts[c]);
-	//	a = object.prefab->f[i]->a.y - 1;
-	//	b = object.prefab->f[i]->b.y - 1;
-	//	c = object.prefab->f[i]->c.y - 1;
-	//	copy(object.prefab->t[a], A->tv);
-	//	copy(object.prefab->t[b], B->tv);
-	//	copy(object.prefab->t[c], C->tv);
-	//	ab.x = B->uv->x - A->uv->x;
-	//	ab.y = B->uv->y - A->uv->y;
-	//	ab.z = B->zValue - A->zValue;
-	//	bc.x = C->uv->x - B->uv->x;
-	//	bc.y = C->uv->y - B->uv->y;
-	//	bc.z = C->zValue - B->zValue;
-	//	crossV3(normal, ab, bc);
-	//	normalized(normal);
-	////	if (VECTOR::dotV3(normal, viewDir) < 0)
-	////		continue;    
-	//	A->color->x = (float)i / 8; A->color->y = (float)i / 8; A->color->z = (float)i / 8;
-	//	B->color->x = (float)i / 8; B->color->y = (float)i / 8; B->color->z = (float)i / 8;
-	//	C->color->x = (float)i / 8; C->color->y = (float)i / 8; C->color->z = (float)i / 8;  
-	//	DrawTriangle(A, B, C);
-	//}  
+	i = 0;
+	for (; i < object.prefab->faceCount; i++) {
+		VERT* A, *B, *C;
+		a = object.prefab->f[i]->a.x - 1;
+		b = object.prefab->f[i]->b.x - 1;
+		c = object.prefab->f[i]->c.x - 1;
+		A = &(object.verts[a]); B = &(object.verts[b]); C = &(object.verts[c]);
+		a = object.prefab->f[i]->a.y - 1;
+		b = object.prefab->f[i]->b.y - 1;
+		c = object.prefab->f[i]->c.y - 1;
+		copy(object.prefab->t[a], A->tv);
+		copy(object.prefab->t[b], B->tv);
+		copy(object.prefab->t[c], C->tv);
+		ab.x = B->uv->x - A->uv->x;
+		ab.y = B->uv->y - A->uv->y;
+		ab.z = B->zValue - A->zValue;
+		bc.x = C->uv->x - B->uv->x;
+		bc.y = C->uv->y - B->uv->y;
+		bc.z = C->zValue - B->zValue;
+		crossV3(normal, ab, bc);
+		normalized(normal);
+	//	if (VECTOR::dotV3(normal, viewDir) < 0)
+	//		continue;    
+		vInfo[i].A = A, vInfo[i].B = B, vInfo[i].C = C;
+		RasterizationTriangle(vInfo[i]);
+	}  
 
 
 
@@ -636,5 +650,5 @@ void PipelineController::RenderTarget(Object &  object) {
 	//A->color->x = (float)i / 8; A->color->y = (float)i / 8; A->color->z = (float)i / 8;
 	//B->color->x = (float)i / 8; B->color->y = (float)i / 8; B->color->z = (float)i / 8;
 	//C->color->x = (float)i / 8; C->color->y = (float)i / 8; C->color->z = (float)i / 8;
-	//DrawTriangle(A, B, C);
+	//RasterizationTriangle(A, B, C);
 }

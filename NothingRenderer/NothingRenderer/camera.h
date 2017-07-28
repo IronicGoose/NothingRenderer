@@ -43,7 +43,7 @@ public :
 			matrixdot(vs->verts[i].position, vs->verts[i].position, ma); 
 		}
 		for (int i = 0; i < vs->prefab->normalCount; i++) {
-			matrixdot(vs->verts[i].normal, vs->verts[i].normal, ma);
+		//	matrixdot(vs->verts[i].normal, vs->verts[i].normal, ma);
 		}
 	}
 
