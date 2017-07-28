@@ -56,9 +56,9 @@ public:
 
 	void WriteToColorBuffer(int x, int y, const VECTOR4 * col) {
 		m_Locker.lock();
-		int index = y* m_width + x; 
-		copy(col, &GetWriteBuffer()[index]);
+		int index = y* m_width + x;
 		m_Locker.unlock();
+		copy(col, &GetWriteBuffer()[index]);
 	}
 	float  GetZBufferValue(int x, int y) { 
 		int index = y* m_width + x;

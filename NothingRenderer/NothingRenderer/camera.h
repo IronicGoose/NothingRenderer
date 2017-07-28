@@ -39,12 +39,12 @@ public :
 	void GetCamCoordinateTransformVert(Object* vs,bool normalConvert = false) { 
 		MATRIX4x4* ma = new MATRIX4x4();
 		GenerateCamMatrix(position, ma);
-		for (int i = 0; i < vs->prefab->normalCount; i++) { 
-			matrixdot(vs->verts[i].normal, vs->verts[i].normal, ma);
-		}
 		for (int i = 0; i < vs->vertCount; i++) {
 			matrixdot(vs->verts[i].position, vs->verts[i].position, ma); 
-		} 
+		}
+		for (int i = 0; i < vs->prefab->normalCount; i++) {
+			matrixdot(vs->verts[i].normal, vs->verts[i].normal, ma);
+		}
 	}
 
 	void GetClipSpaceTransfromVert(Object* vs) {
@@ -53,10 +53,10 @@ public :
 		float halfw = width / 2, halfh = height / 2;
 		for (int i = 0; i < vs->vertCount; i++) { 
 			matrixdot(vs->verts[i].position, vs->verts[i].position, ma); 
-			vs->verts[i].uv->x =  (int)halfw* (1+ vs->verts[i].position->x / vs->verts[i].position->w );
-			vs->verts[i].uv->y  =  (int)halfh* (1+  vs->verts[i].position->y / vs->verts[i].position->w );
-			vs->verts[i].position->x =(int)	halfw* (1 + vs->verts[i].position->x / vs->verts[i].position->w);
-			vs->verts[i].position->y =(int) halfh* (1 + vs->verts[i].position->y / vs->verts[i].position->w);
+			vs->verts[i].uv->x =  halfw* (1+ vs->verts[i].position->x / vs->verts[i].position->w );
+			vs->verts[i].uv->y  =  halfh* (1+  vs->verts[i].position->y / vs->verts[i].position->w );
+			vs->verts[i].position->x = (halfw* (1 + vs->verts[i].position->x / vs->verts[i].position->w) );
+			vs->verts[i].position->y = (halfh* (1 + vs->verts[i].position->y / vs->verts[i].position->w) );
 			vs->verts[i].position->z = vs->verts[i].position->w;
 			vs->verts[i].position->w = 1 / vs->verts[i].position->w;
 			vs->verts[i].zValue =  vs->verts[i].position->w;

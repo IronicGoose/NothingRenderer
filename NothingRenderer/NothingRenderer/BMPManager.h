@@ -3,7 +3,7 @@
 #include<iostream>
 #include<fstream>
 #include"Vector.h"
-  
+#include<mutex>
 using namespace VECTOR;
 using namespace std;
 class BMPManager {

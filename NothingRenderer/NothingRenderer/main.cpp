@@ -35,7 +35,7 @@ void Mainloop() {
 	t += 0.05;
 	Object* ob = pipeline.GetObject("cube001");
 	Object* ob2 = pipeline.GetObject("cube002");
-	ob2->SetRotation(0,1 , 1,85 ); 
+	ob2->SetRotation(0,1 , 1,85 *t ); 
 	VECTOR4 col;
 	glClear(GL_COLOR_BUFFER_BIT);
 	glBegin(GL_POINTS);
@@ -78,9 +78,7 @@ int main(int argc, char ** argv)
 	height = 800; 
 	VECTOR4 col(0.953, 0.447, 0.8156, 1); 
 	VECTOR2 from(100, 0), to(0, 245);
-	VECTOR4 lineColor(0.1, 0.1, 0.1, 1);
-	 
-
+	VECTOR4 lineColor(0.1, 0.1, 0.1, 1);  
 	glutInitWindowSize(width, height);
 	glutCreateWindow("sth");
 	glClearColor(1.0, 1.0, 1.0, 0.0);
