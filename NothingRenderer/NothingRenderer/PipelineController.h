@@ -19,6 +19,7 @@ struct MulThreadFACE {
 
 struct DrawTrianglePoint {
 	float x, y, tarX, tarY;
+	int drawx, drawy;
 	VERT* FROM, *TO;
 	int count;
 	int dis;
@@ -89,7 +90,7 @@ public :
 			return true;
 		return false;
 	}
-	Object * GetObject(string name );
+	Object * GetObject(string name );/*
 	void DrawLine(int x0, int x1, int y0, int y1) {
 		VECTOR2 dir;
 		dir.x = x1 - x0;
@@ -105,7 +106,7 @@ public :
 			p.Move();
 		}
 
-	}
+	}*/
 	void GetVertsWorldSpace(Object* obj, MATRIX4x4* rotateMatrix, bool normalConvert = false) {
 		MATRIX4x4* ma = new MATRIX4x4();
 		GenerateTransformMatrix(obj->position, ma); 
@@ -131,12 +132,12 @@ public :
 	void GetAffineWeight(VECTOR4* A , VECTOR4 * B ,  VECTOR4* C,  float Px ,float Py , float pw, VECTOR3* res) {
 		float a, b, c, total;
 		float x1, y1, x2, y2, x3, y3;
-		x1 = A->x /A->w;
-		y1 = A->y /A->w;
-		x2 = B->x /B->w;
-		y2 = B->y /B->w;
-		x3 = C->x /C->w;
-		y3 = C->y /C->w;
+		x1 = (int)A->x /A->w;
+		y1 = (int)A->y /A->w;
+		x2 = (int)B->x /B->w;
+		y2 = (int)B->y /B->w;
+		x3 = (int)C->x /C->w;
+		y3 = (int)C->y /C->w;
 		Px = Px  /pw;
 		Py = Py /pw;  
 		
@@ -159,12 +160,12 @@ public :
 	float GetWValue(VECTOR4* A  ,VECTOR4 * B,    VECTOR4* C ,float Px,float  Py) {
 		float a, b, c, total;
 		float  x1, y1, x2, y2, x3, y3;
-		x1 = A->x  ;
-		y1 = A->y  ;
-		x2 = B->x  ;
-		y2 = B->y ;
-		x3 = C->x  ;
-		y3 = C->y  ;
+		x1 = (int)A->x  ;
+		y1 = (int)A->y  ;
+		x2 = (int)B->x  ;
+		y2 = (int)B->y ;
+		x3 = (int)C->x  ;
+		y3 = (int)C->y  ;
 		Px = Px  ;
 		Py = Py ;
 
@@ -242,6 +243,9 @@ public :
 	//	col.z = a.FROM->color->z * alpha + a.TO->color->z * (1 - alpha);  
 		m_buffer.WriteToColorBuffer(a.x, a.y, &col); 
 	}
+	void DrawLine(DrawTrianglePoint a, DrawTrianglePoint b, VShaderInfo) {
+		 
+	}
 	void DrawPoint(DrawTrianglePoint a,VShaderInfo& info) {
 		if (!ValidScreamPos(a.x, a.y))
 			return;
@@ -263,8 +267,15 @@ public :
 		float VlightAdjust = alpha *info.lightIntense[orderAFrom] + (1 - alpha) * info.lightIntense[orderATO]; 
 		if (useVShader) {
 			dot(&col, &col, VlightAdjust);
-		}   
+		}
+		col.x = 0; col.y = 0; col.z = 0;
 		m_buffer.WriteToColorBuffer(a.x, a.y, &col);
+		m_buffer.WriteToColorBuffer(a.x + 1, a.y, &col);
+		if (a.y + 1 >= m_height) {
+			return;
+		}
+		m_buffer.WriteToColorBuffer(a.x+1, a.y+1, &col);
+		m_buffer.WriteToColorBuffer(a.x, a.y+1, &col);
 
 	}
 	void RasterLine(DrawTrianglePoint a,DrawTrianglePoint b,VShaderInfo info) { 
@@ -276,15 +287,13 @@ public :
 		for (int i = 0; dxl + i <= dxr; i ++) {
 			m_buffer.WriteToColorBuffer(dxl + i, a.y, &gray);
 		}
-*/
-		
+*/ 
 		int xl = a.x, xr = b.x; 
 		int errorPoint = 0, normalPoint = 0;
 		if (xl == xr) {
-			DrawPoint(a);
-			DrawPoint(b); 
+			DrawPoint(a); 
 			return;
-		}  
+		}
 		VECTOR4 col(1, 1, 1, 0);
 		float alpha = 1 - (float)a.count / a.dis;
 		float beta = 1- (float)b.count / b.dis; 
@@ -312,8 +321,7 @@ public :
 				continue;
 			}
 			VECTOR3 res; 
-			float u, v;
-
+			float u, v; 
 			float VlightAdjust;
 			if (a.FROM == b.FROM) {     
 				float pw = GetWValue(a.FROM->position, a.TO->position, b.TO->position, xl + i, a.y);
@@ -363,10 +371,7 @@ public :
 				amb = amb * 0.5 + 0.5;
 				amb *= m_lightDiffuse;
 				VlightAdjust = (sth + amb) * m_lightIntense;
-
-
-
-
+				 
 
 
 			}
@@ -422,7 +427,7 @@ public :
 			if (useVShader) { 
 				dot(&col, &col, VlightAdjust);
 			}
-
+			col.x = 0; col.y = 0; col.z = 0;
 			m_buffer.WriteToColorBuffer(xl + i, a.y,&col);
 		}
 	//	cout << errorPoint << "  " << " normal point " << normalPoint << endl;
@@ -453,10 +458,7 @@ public :
 		}
 		if (B->uv->y == A->uv->y) {
 			VERT* temp = A; A = C;C = temp; 
-		}
-		if (C->uv->y == A->uv->y) {
-			VERT* temp = A; A = B; B = temp; 
-		}
+		} 
 		if (A->uv->y > B->uv->y)
 			yDir = -1;
 		float disAB = distance2D(*(A->uv), *(B->uv)), disAC = distance2D(*(A->uv), *(C->uv));
@@ -487,17 +489,17 @@ public :
 
 			while ((int)ab.y != y )
 			{
-				ab.count++;	ab.x += ab.dir.x; ab.y += ab.dir.y; DrawPoint(ab,info);
-				if (ab.count > disAB )
-					break;
+				ab.count++;	ab.x += ab.dir.x; ab.y += ab.dir.y; DrawPoint(ab,info);  
 			}
 			while ((int)ac.y != y)
 			{
-				ac.count++;  ac.Move(); DrawPoint(ac, info);
-				if (ac.count > disAC )
-					break;
+				ac.count++;  ac.Move(); DrawPoint(ac, info);  
 			} 
-			RasterLine(ab, ac,info);
+			if (ab.count >= disAB || ac.count >= disAC)
+				break;
+			if ((int)ab.y !=(int) ac.y)
+				cout << "error occur in raster" << endl;
+			RasterLine(ab, ac, info); 
 			y += yDir;
 		}
 		if (B->uv->y == C->uv->y) {
@@ -524,11 +526,11 @@ public :
 			RasterLine(ab, la, info);
 			while ((int)ab.y != y)
 			{
-				ab.count++;	ab.Move(); DrawPoint(ab, info);
+				ab.count++;	ab.Move(); DrawPoint(ab, info); 
 			}
 			while ((int)la.y != y)
 			{
-				la.count++;  la.Move(); DrawPoint(la, info);
+				la.count++;  la.Move(); DrawPoint(la, info); 
 			}
 			RasterLine(ab, la,info); 
 			y++;
@@ -629,7 +631,7 @@ void PipelineController::RenderTarget(Object &  object) {
 	GenerateTransformMatrix(object.position, &ma);
 	GetVertsWorldSpace(&object, &rot, true);
 	m_cam.GetCamCoordinateTransformVert(&object);
-	cout << "term" << endl;
+	//cout << "term" << endl;
 	VShaderInfo* vInfo = new VShaderInfo[object.prefab->faceCount];
 	for (int i = 0; i < object.prefab->faceCount; i++) { 
 		a = object.prefab->f[i]->a.x - 1;

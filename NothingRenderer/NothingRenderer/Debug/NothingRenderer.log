@@ -1,10 +1,7 @@
 ﻿  main.cpp
-d:\rendererreference\nothingrenderer\nothingrenderer\nothingrenderer\pipelinecontroller.h(132): warning C4101: “total”: 未引用的局部变量
-d:\rendererreference\nothingrenderer\nothingrenderer\nothingrenderer\pipelinecontroller.h(160): warning C4101: “total”: 未引用的局部变量
-d:\rendererreference\nothingrenderer\nothingrenderer\nothingrenderer\pipelinecontroller.h(293): warning C4101: “depth”: 未引用的局部变量
-  正在生成代码...
-d:\rendererreference\nothingrenderer\nothingrenderer\nothingrenderer\pipelinecontroller.h(599): warning C4715: “PipelineController::GetObject”: 不是所有的控件路径都返回值
-  正在跳过...(未检测到相关更改)
-  PipelineController.cpp
-  NothingRenderer.vcxproj -> D:\RendererReference\NothingRenderer\NothingRenderer\Debug\NothingRenderer.exe
-  NothingRenderer.vcxproj -> D:\RendererReference\NothingRenderer\NothingRenderer\Debug\NothingRenderer.pdb (Partial PDB)
+c:\users\12823\documents\github\nothingrenderer\nothingrenderer\nothingrenderer\pipelinecontroller.h(133): warning C4101: “total”: 未引用的局部变量
+c:\users\12823\documents\github\nothingrenderer\nothingrenderer\nothingrenderer\pipelinecontroller.h(161): warning C4101: “total”: 未引用的局部变量
+c:\users\12823\documents\github\nothingrenderer\nothingrenderer\nothingrenderer\pipelinecontroller.h(302): warning C4101: “depth”: 未引用的局部变量
+c:\users\12823\documents\github\nothingrenderer\nothingrenderer\nothingrenderer\pipelinecontroller.h(601): warning C4715: “PipelineController::GetObject”: 不是所有的控件路径都返回值
+  NothingRenderer.vcxproj -> C:\Users\12823\Documents\GitHub\NothingRenderer\NothingRenderer\Debug\NothingRenderer.exe
+  NothingRenderer.vcxproj -> C:\Users\12823\Documents\GitHub\NothingRenderer\NothingRenderer\Debug\NothingRenderer.pdb (Partial PDB)
