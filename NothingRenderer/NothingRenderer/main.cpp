@@ -21,7 +21,7 @@ void RenderACube() {
 //	eye.GenerateCenterPoint();  
 	VECTOR4  pos(0, 0, 4, 1);
 	Object *object = new Object(); 
-//	pipeline.CreateObject("cube001", "cube", &pos);
+	pipeline.CreateObject("cube001", "cube", &pos);
 	pos.y = 4;
 	pipeline.CreateObject("cube002", "sphere", &pos);
 	pipeline.LoadPicture();
@@ -35,7 +35,7 @@ void Mainloop() {
 	t += 0.05;
 	Object* ob = pipeline.GetObject("cube001");
 	Object* ob2 = pipeline.GetObject("cube002");
-	ob2->SetRotation(1,1 ,1,20*t); 
+	ob2->SetRotation(1,1 ,1,50*t); 
 	//pipeline.lightDir.x = 1 * sin(t/360 * 3.141592657);
 	//pipeline.lightDir.y = 1 * cos(t /360 * 3.141592657);
 	VECTOR4 col;

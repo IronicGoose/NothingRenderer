@@ -130,7 +130,7 @@ public :
 		return abs(  (x0 * (y1 - y2) + x1 * (y2 - y0) + x2* (y0 - y1))/2.0 );
 	}
 	void GetAffineWeight(VECTOR4* A , VECTOR4 * B ,  VECTOR4* C,  float Px ,float Py , float pw, VECTOR3* res) {
-		float a, b, c, total;
+		float a, b, c;
 		float x1, y1, x2, y2, x3, y3;
 		x1 = (int)A->x /A->w;
 		y1 = (int)A->y /A->w;
@@ -173,7 +173,24 @@ public :
 		b = ((y1 - y3) * Px + (x3 - x1) * Py + x1 * y3 - x3 * y1) / (float)((y1 - y3) * x2 + (x3 - x1) * y2 + x1 * y3 - x3 * y1);
 		a = 1 - b - c;
 		return A->w * a + B->w * b + C->w * c;
-	}  
+	}
+	float GetZValue(VECTOR4* A, VECTOR4 * B, VECTOR4* C, float Px, float  Py) {
+		float a, b, c, total;
+		float  x1, y1, x2, y2, x3, y3;
+		x1 = (int)A->x;
+		y1 = (int)A->y;
+		x2 = (int)B->x;
+		y2 = (int)B->y;
+		x3 = (int)C->x;
+		y3 = (int)C->y;
+		Px = Px;
+		Py = Py;
+
+		c = ((y1 - y2) * Px + (x2 - x1) * Py + x1 * y2 - x2 * y1) / (float)((y1 - y2) * x3 + (x2 - x1) * y3 + x1 * y2 - x2 * y1);
+		b = ((y1 - y3) * Px + (x3 - x1) * Py + x1 * y3 - x3 * y1) / (float)((y1 - y3) * x2 + (x3 - x1) * y2 + x1 * y3 - x3 * y1);
+		a = 1 - b - c;
+		return A->z * a + B->z * b + C->z * c;
+	}
 	int GetOrder(VShaderInfo i, VERT&  A) {
 		if (i.order[0] == A.vertNum)
 			return 0;
@@ -243,9 +260,6 @@ public :
 	//	col.z = a.FROM->color->z * alpha + a.TO->color->z * (1 - alpha);  
 		m_buffer.WriteToColorBuffer(a.x, a.y, &col); 
 	}
-	void DrawLine(DrawTrianglePoint a, DrawTrianglePoint b, VShaderInfo) {
-		 
-	}
 	void DrawPoint(DrawTrianglePoint a,VShaderInfo& info) {
 		if (!ValidScreamPos(a.x, a.y))
 			return;
@@ -268,16 +282,165 @@ public :
 		if (useVShader) {
 			dot(&col, &col, VlightAdjust);
 		}
-		col.x = 0; col.y = 0; col.z = 0;
-		m_buffer.WriteToColorBuffer(a.x, a.y, &col);
-		m_buffer.WriteToColorBuffer(a.x + 1, a.y, &col);
+		col.x = 1; col.y = 1; col.z = 1;
+		//m_buffer.WriteToColorBuffer(a.x, a.y, &col);
+		//m_buffer.WriteToColorBuffer(a.x + 1, a.y, &col);
 		if (a.y + 1 >= m_height) {
 			return;
 		}
-		m_buffer.WriteToColorBuffer(a.x+1, a.y+1, &col);
-		m_buffer.WriteToColorBuffer(a.x, a.y+1, &col);
+		//m_buffer.WriteToColorBuffer(a.x+1, a.y+1, &col);
+		//m_buffer.WriteToColorBuffer(a.x, a.y+1, &col);
 
 	}
+	void DrawLine(DrawTrianglePoint& a, DrawTrianglePoint& b, DrawTrianglePoint& c, VShaderInfo& info ) {
+		//for line ab 
+		VECTOR4 col(0, 0, 0, 0);
+		float u = a.x, v = a.y;
+		float depth;
+		for (int i = 0; i <= a.dis; i++) {
+			u = a.x + i* a.dir.x; v = a.y + i* a.dir.y;
+			if (!ValidScreamPos(u, v))
+				continue;
+			m_buffer.WriteToColorBuffer(u, v, &col);
+
+
+			if (ValidScreamPos(u+1, v)) { 
+				m_buffer.WriteToColorBuffer(u+1, v, &col);
+			}
+			if (ValidScreamPos(u , v +1)) {
+				m_buffer.WriteToColorBuffer(u + 1, v, &col);
+			}
+			m_buffer.WriteToColorBuffer(u, v, &col);
+/*
+			depth = GetZValue(a.FROM->position, c.FROM->position, c.TO->position,u,v);
+			if (depth > m_buffer.GetZBufferValue(u, v)) {
+				m_buffer.WriteToZBuffer(depth, u,v);
+			}
+			else {
+				continue;
+			}*/
+
+		//	FragmentProcessShader(u, v, a.FROM, c.FROM, c.TO, info, &col);   
+
+
+		}
+
+		u = b.x, v = b.y;
+		for (int i = 0; i < b.dis; i++) {
+			u = b.x + i* b.dir.x; v = b.y + i* b.dir.y;
+			if (!ValidScreamPos(u, v))
+				continue;
+
+			if (ValidScreamPos(u + 1, v)) {
+				m_buffer.WriteToColorBuffer(u + 1, v, &col);
+			}
+			if (ValidScreamPos(u, v + 1)) {
+				m_buffer.WriteToColorBuffer(u + 1, v, &col);
+			}
+
+			m_buffer.WriteToColorBuffer(u, v, &col);
+/*
+			depth = GetZValue(a.FROM->position, c.FROM->position, c.TO->position, u, v);
+			if (depth > m_buffer.GetZBufferValue(u, v)) {
+				m_buffer.WriteToZBuffer(depth, u, v);
+			}
+			else {
+				continue;
+			}*/
+
+		//	FragmentProcessShader(u, v, a.FROM, c.FROM, c.TO, info, &col); 
+			 
+		}
+
+
+
+		u = c.x, v = c.y;
+		for (int i = 0; i < c.dis; i++) {
+			u = c.x + i* c.dir.x; v = c.y + i* c.dir.y;
+			if (!ValidScreamPos(u, v))
+				continue; 
+
+			if (ValidScreamPos(u + 1, v)) {
+				m_buffer.WriteToColorBuffer(u + 1, v, &col);
+			}
+			if (ValidScreamPos(u, v + 1)) {
+				m_buffer.WriteToColorBuffer(u + 1, v, &col);
+			}
+
+
+			m_buffer.WriteToColorBuffer(u , v, &col);
+/*
+			depth = GetZValue(a.FROM->position, c.FROM->position, c.TO->position, u, v);
+			if (depth > m_buffer.GetZBufferValue(u, v)) {
+				m_buffer.WriteToZBuffer(depth, u, v);
+			}
+			else {
+				continue;
+			}
+*/
+			//FragmentProcessShader(u, v, a.FROM, c.FROM, c.TO, info, &col); 
+			 
+		}
+
+	}
+	bool FragmentProcessShader(int x, int y, VERT* a, VERT*  b, VERT* c, VShaderInfo& info, VECTOR4* outColor) {
+		VECTOR3 res;
+		
+		float u, v;
+		float VlightAdjust; 
+		float pw = GetWValue(a->position, b->position, c->position, x, y);
+		GetAffineWeight(a->position,b->position, c->position, x , y, pw, &res);
+		if (res.x < 0 || res.x > 1 || res.y < 0 || res.y > 1 || res.z < 0 || res.z > 1)
+			return false; 
+		int ordera = GetOrder(info, *a), orderb = GetOrder(info, *b), orderc = GetOrder(info, *c);
+		u = a->tv->x * res.x + b->tv->x * res.y + c->tv->x * res.z;
+		v = a->tv->y * res.x + b->tv->y * res.y + c->tv->y * res.z;
+		VlightAdjust = res.x *info.lightIntense[ordera] + res.y * info.lightIntense[orderb]
+			+ res.z *info.lightIntense[orderc];
+		
+		VECTOR4 fragPosA, fragPosB, fragPosC;
+		dot(&fragPosA, &info.pos[ordera], res.x);
+		dot(&fragPosB, &info.pos[orderb], res.y);
+		dot(&fragPosC, &info.pos[orderc], res.z);
+		add(&fragPosA, &fragPosA, &fragPosB);
+		add(&fragPosA, &fragPosA, &fragPosC);
+
+
+		VECTOR4 normalA, normalB, normlaC;
+		dot(&normalA, &info.normal[ordera], res.x);
+		dot(&normalB, &info.normal[orderb], res.y);
+		dot(&normlaC, &info.normal[orderc], res.z);
+		add(&normalA, &normalA, &normalB);
+		add(&normalA, &normalA, &normlaC);
+
+		VECTOR4 viewDir;
+		minusV4(&viewDir, m_cam.position, &fragPosA);
+
+		normalizedVector3(&viewDir, &viewDir);
+		normalizedVector3(&normalA, &normalA);
+
+
+		float amb = dot3x3(&lightDir, &normalA);
+		VECTOR4 r;
+		VECTOR::dot(&r, &normalA, 2 * amb);
+		minusV3(&r, &r, &lightDir);
+		normalizedVector3(&r, &r);
+		float  sth = dot3x3(&r, &viewDir);
+		sth = sth *0.5 + 0.5;
+		sth = sth * sth *(sth * 0.25);
+		amb = amb * 0.5 + 0.5;
+		amb *= m_lightDiffuse;
+		VlightAdjust = (sth + amb) * m_lightIntense;
+		
+		outColor->x = 1; outColor->y = 1; outColor->z = 1;
+		
+		dot(outColor, outColor, VlightAdjust);
+
+
+		m_buffer.WriteToColorBuffer(x, y, outColor);
+		return true;
+	} 
+
 	void RasterLine(DrawTrianglePoint a,DrawTrianglePoint b,VShaderInfo info) { 
 		 
 /*
@@ -288,7 +451,7 @@ public :
 			m_buffer.WriteToColorBuffer(dxl + i, a.y, &gray);
 		}
 */ 
-		int xl = a.x, xr = b.x; 
+		int xl = a.x , xr = b.x;  
 		int errorPoint = 0, normalPoint = 0;
 		if (xl == xr) {
 			DrawPoint(a); 
@@ -304,7 +467,8 @@ public :
 		if (xl > xr) {
 			swap(xl, xr); 
 			lr = false;
-		}  
+		}   
+		
 		for (int i = 0; xl + i <= xr; i++) {
 			if (!ValidScreamPos(xl + i, a.y)) {  
 				continue;
@@ -320,17 +484,16 @@ public :
 			else { 
 				continue;
 			}
-			VECTOR3 res; 
-			float u, v; 
-			float VlightAdjust;
-			if (a.FROM == b.FROM) {     
+			float u, v, VlightAdjust;
+			VECTOR3 res;
+			if (a.FROM == b.FROM) {
 				float pw = GetWValue(a.FROM->position, a.TO->position, b.TO->position, xl + i, a.y);
 				GetAffineWeight(a.FROM->position, a.TO->position, b.TO->position, xl + i, a.y, pw, &res);
 				if (res.x < 0 || res.x > 1 || res.y < 0 || res.y > 1 || res.z < 0 || res.z > 1)
 					continue;
 
 				int orderAFrom = GetOrder(info, *a.FROM), orderATO = GetOrder(info, *a.TO), orderBTO = GetOrder(info, *b.TO);
-				u =  a.FROM->tv->x * res.x + a.TO->tv->x * res.y + b.TO->tv->x * res.z;
+				u = a.FROM->tv->x * res.x + a.TO->tv->x * res.y + b.TO->tv->x * res.z;
 				v = a.FROM->tv->y * res.x + a.TO->tv->y * res.y + b.TO->tv->y * res.z;
 				VlightAdjust = res.x *info.lightIntense[orderAFrom] + res.y * info.lightIntense[orderATO]
 					+ res.z *info.lightIntense[orderBTO];
@@ -370,24 +533,22 @@ public :
 				sth = sth * sth *(sth * 0.25);
 				amb = amb * 0.5 + 0.5;
 				amb *= m_lightDiffuse;
-				VlightAdjust = (sth + amb) * m_lightIntense;
-				 
-
+				VlightAdjust = (sth + amb) * m_lightIntense; 
 
 			}
 			else {
 
-				float pw = GetWValue(a.FROM->position, a.TO->position, b.FROM->position, xl + i, a.y); 
+				float pw = GetWValue(a.FROM->position, a.TO->position, b.FROM->position, xl + i, a.y);
 				GetAffineWeight(a.FROM->position, a.TO->position, b.FROM->position, xl + i, a.y, pw, &res);
 				if (res.x < 0 || res.x > 1 || res.y < 0 || res.y > 1 || res.z < 0 || res.z > 1)
 					continue;
 				int orderAFrom = GetOrder(info, *a.FROM), orderATO = GetOrder(info, *a.TO), orderBFrom = GetOrder(info, *b.FROM);
 				u = a.FROM->tv->x * res.x + a.TO->tv->x * res.y + b.FROM->tv->x * res.z;
 				v = a.FROM->tv->y * res.x + a.TO->tv->y * res.y + b.FROM->tv->y * res.z;
-				VlightAdjust = res.x *info.lightIntense [orderAFrom] + res.y * info.lightIntense[orderATO]
+				VlightAdjust = res.x *info.lightIntense[orderAFrom] + res.y * info.lightIntense[orderATO]
 					+ res.z *info.lightIntense[orderBFrom];
 
-				VECTOR4 fragPosA,fragPosB,fragPosC;
+				VECTOR4 fragPosA, fragPosB, fragPosC;
 				dot(&fragPosA, &info.pos[orderAFrom], res.x);
 				dot(&fragPosB, &info.pos[orderATO], res.y);
 				dot(&fragPosC, &info.pos[orderBFrom], res.z);
@@ -395,7 +556,7 @@ public :
 				add(&fragPosA, &fragPosA, &fragPosC);
 
 
-				VECTOR4 normalA,normalB, normlaC;
+				VECTOR4 normalA, normalB, normlaC;
 				dot(&normalA, &info.normal[orderAFrom], res.x);
 				dot(&normalB, &info.normal[orderATO], res.y);
 				dot(&normlaC, &info.normal[orderBFrom], res.z);
@@ -420,14 +581,14 @@ public :
 				amb = amb * 0.5 + 0.5;
 				amb *= m_lightDiffuse;
 				VlightAdjust = (sth + amb) * m_lightIntense;
-			}  
+			}
 			normalPoint++;
-			VECTOR4 col(1,1,1,0);
+			VECTOR4 col(1, 1, 1, 0);
 		//	copy(m_BMPManager.GetBMPColor(u, v), &col);
 			if (useVShader) { 
 				dot(&col, &col, VlightAdjust);
 			}
-			col.x = 0; col.y = 0; col.z = 0;
+		//	col.x = 0; col.y = 0; col.z = 0;
 			m_buffer.WriteToColorBuffer(xl + i, a.y,&col);
 		}
 	//	cout << errorPoint << "  " << " normal point " << normalPoint << endl;
@@ -479,12 +640,26 @@ public :
 		ac.tarX = C->uv->x; ac.tarY = C->uv->y;
 		ac.dis = disAC; ac.count = 0;
 		ac.FROM = A; ac.TO = C;
+
+		DrawTrianglePoint bc;
+
+		float disbc = distance2D(*(B->uv), *(C->uv));
+		bc.count = 0; bc.dis = disbc;
+		bc.x = C->uv->x; bc.y = C->uv->y;
+		dir.x = B->uv->x - C->uv->x; dir.y = B->uv->y - C->uv->y;
+		normalized(dir); bc.dir.x = dir.x; bc.dir.y = dir.y;
+		bc.FROM = C; bc.TO = B;
+
+
 		int y = A->uv->y;
+
+
 
 		if (A->uv->y == B->uv->y && A->uv->y == C->uv->y)
 		{ 
 			return;
 		}
+		DrawLine(ab, ac,bc, info);
 		for (; ab.count < disAB && ac.count < disAC;) {  
 
 			while ((int)ab.y != y )
@@ -505,34 +680,24 @@ public :
 		if (B->uv->y == C->uv->y) {
 			return;
 		}
-		DrawTrianglePoint la;
-
-		float disbc = distance2D(*(B->uv), *(C->uv));
-		la.count = 0; la.dis = disbc;
-		if (ac.count >= disAC) {
-			la.x = C->uv->x; la.y = C->uv->y;
-			dir.x = B->uv->x - C->uv->x; dir.y = B->uv->y - C->uv->y;
-			normalized(dir); la.dir.x = dir.x; la.dir.y = dir.y; 
-			la.FROM = C; la.TO = B;
-		}
 		if (ab.count >= disAB) { 
-			la.x = B->uv->x; la.y = B->uv->y;
+			bc.x = B->uv->x; bc.y = B->uv->y;
 			dir.x = C->uv->x - B->uv->x; dir.y = C->uv->y - B->uv->y;
-			normalized(dir); la.dir.x = dir.x; la.dir.y = dir.y;
-			la.FROM = B; la.TO = C;
+			normalized(dir); bc.dir.x = dir.x; bc.dir.y = dir.y;
+			bc.FROM = B; bc.TO = C;
 			ab.count = ac.count;	Swap(ab, ac); disAB = disAC;
 		}  
-		for (; ab.count < disAB && la.count < disbc;) {
-			RasterLine(ab, la, info);
+		for (; ab.count < disAB && bc.count < disbc;) {
+			RasterLine(ab, bc, info);
 			while ((int)ab.y != y)
 			{
 				ab.count++;	ab.Move(); DrawPoint(ab, info); 
 			}
-			while ((int)la.y != y)
+			while ((int)bc.y != y)
 			{
-				la.count++;  la.Move(); DrawPoint(la, info); 
+				bc.count++;  bc.Move(); DrawPoint(bc, info); 
 			}
-			RasterLine(ab, la,info); 
+			RasterLine(ab, bc,info); 
 			y++;
 		}  
 	}
@@ -610,10 +775,10 @@ void PipelineController::AddRenderTarget(Object* ob) {
 PipelineController::PipelineController() {
 	VECTOR4 col(0.953, 0.447, 0.8156, 1);
 	copy(&col, &m_penCol);
-	lightDir.x = 0; lightDir.y = -1; lightDir.z = 0; lightDir.w = 0;
+	lightDir.x = 0; lightDir.y = 0; lightDir.z = -1; lightDir.w = 0;
 	normalizedVector3(&lightDir, &lightDir);
 	m_lightIntense = 1;
-	m_lightDiffuse = 1;
+	m_lightDiffuse = 0.8;
 	m_threads = 5;
 }
 
