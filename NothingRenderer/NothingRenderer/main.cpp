@@ -23,7 +23,7 @@ void RenderACube() {
 	Object *object = new Object(); 
 	pipeline.CreateObject("cube001", "cube", &pos);
 	pos.y = 4;
-	pipeline.CreateObject("cube002", "sphere", &pos);
+	pipeline.CreateObject("sphere", "sphere", &pos);
 	pipeline.LoadPicture();
 	pipeline.RenderAll(); 
 //	pipeline.RenderTarget(*object);
@@ -32,12 +32,12 @@ void RenderACube() {
 
 float  t = 0;
 void Mainloop() {
-	t += 0.05;
-	Object* ob = pipeline.GetObject("cube001");
-	Object* ob2 = pipeline.GetObject("cube002");
-	ob2->SetRotation(1,1 ,1,50*t); 
-	//pipeline.lightDir.x = 1 * sin(t/360 * 3.141592657);
-	//pipeline.lightDir.y = 1 * cos(t /360 * 3.141592657);
+	t += 5;
+	Object* cube = pipeline.GetObject("cube001");
+	Object* sphere = pipeline.GetObject("sphere");
+	sphere->SetRotation(1,1 ,1,t); 
+	cube->SetRotation(1, 1, 1,  t);
+	cube->SetPosition(sin(t* 3.141592657/180) *1, cos(t* 3.141592657 / 180) * 1, 1,  t);
 	VECTOR4 col;
 	glClear(GL_COLOR_BUFFER_BIT);
 	glBegin(GL_POINTS);

@@ -44,7 +44,7 @@ class PipelineController {
 public :
 	int done = 0;
 	int m_threads;
-	bool useVShader = true,useFShader = false;
+	bool useVShader = true,useFShader = false,useTexture;
 	VECTOR4 lightDir;
 	PipelineController();
 	void CreateBuffer(int w, int h) {
@@ -584,7 +584,8 @@ public :
 			}
 			normalPoint++;
 			VECTOR4 col(1, 1, 1, 0);
-		//	copy(m_BMPManager.GetBMPColor(u, v), &col);
+			if(useTexture)
+				copy(m_BMPManager.GetBMPColor(u, v), &col);
 			if (useVShader) { 
 				dot(&col, &col, VlightAdjust);
 			}
@@ -742,10 +743,12 @@ void MultiFaceDraw(Object & object , int from ,int to,VECTOR4* viewDir,PipelineC
 
 void PipelineController::RenderAll() {
 	m_buffer.ClearColBuffer(m_penCol);
-	
-
-
+	 
 	for (int i = 0; i < targetLength; i++) {
+		if (m_renderTargets[i]->prefab->name == "cube")
+			useTexture = true;
+		else
+			useTexture = false;
 		RenderTarget(*m_renderTargets[i]);
 	}
 	ShowBMPPicture();
@@ -838,9 +841,11 @@ void PipelineController::RenderTarget(Object &  object) {
 		a = object.prefab->f[i]->a.y - 1;
 		b = object.prefab->f[i]->b.y - 1;
 		c = object.prefab->f[i]->c.y - 1;
-		copy(object.prefab->t[a], A->tv);
-		copy(object.prefab->t[b], B->tv);
-		copy(object.prefab->t[c], C->tv);
+		if (useTexture) {
+			copy(object.prefab->t[a], A->tv);
+			copy(object.prefab->t[b], B->tv);
+			copy(object.prefab->t[c], C->tv); 
+		}
 	}
 
 	int threadCount = 5;
@@ -860,8 +865,7 @@ void PipelineController::RenderTarget(Object &  object) {
 	t5.join();
 
 	while (done != 5)
-	{
-
+	{ 
 	}
 	done = 0;  
 
