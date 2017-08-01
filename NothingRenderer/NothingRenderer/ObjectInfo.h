@@ -14,7 +14,7 @@ class  VERT {
 public:
 	int vertNum;
 	VECTOR4 * position;
-	VECTOR2I* uv;
+	VECTOR2* uv;
 	float zValue;
 	VECTOR4 * normal;
 	VECTOR4 * color;
@@ -24,7 +24,7 @@ public:
 		position = new VECTOR4();
 		normal = new VECTOR4();
 		color = new VECTOR4();
-		uv = new VECTOR2I();
+		uv = new VECTOR2();
 		tv = new VECTOR2();
 		color->x = 0; color->y = 0; color->z = 0; color->w = 1;
 		normal->w = 0;
@@ -38,6 +38,13 @@ struct VShaderInfo {
 	int order[3];
 	float lightIntense[3];
 
+};
+struct MatrixStore{
+	MATRIX4x4 loacl2WorldM;
+	MATRIX4x4 local2WorldR;
+	MATRIX4x4 W2CamM;
+	MATRIX4x4 W2CamR;
+	MATRIX4x4 C2OthroM; 
 };
 class GEOMETRY
 {
@@ -64,6 +71,7 @@ public :
 	string objectName;
 	VECTOR4 * position;
 	VECTOR4 * rotation;
+	VECTOR3  scale;
 	void SetRotation(float x, float y, float z , float w ) { 
 		float qr = cos(w * 3.1415926 / 360);
 		float s = sin(w * 3.1415926 / 360);
@@ -73,9 +81,13 @@ public :
 	void SetPosition(float x, float y, float z, float w) { 
 		position->x = x; position->y = y; position->z = z; position->w = w;
 	}
+	void SetScale(float x, float y, float z ) { 
+		scale.x = x; scale.y = y; scale.z = z;
+	}
 	Object::Object() {
 		position = new VECTOR4();
-		rotation = new VECTOR4();
+		rotation = new VECTOR4();  
+		scale.x = 1; scale.y = 1; scale.z = 1;
 		rotation->x = 0; rotation->y = 0; rotation->z = 0; rotation->w = 1;
 	}
 	Object::~Object() {

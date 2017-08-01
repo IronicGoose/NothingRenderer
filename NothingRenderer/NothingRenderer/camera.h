@@ -8,7 +8,8 @@ public :
 
 
 	VECTOR4* position;
-	VECTOR4* direction;  
+	VECTOR4* direction;
+	VECTOR4 rotation;
 	float nearZ, farZ;
 	float fov;
 	float width, height;
@@ -16,6 +17,17 @@ public :
 	void SetWidthHeight(float wid, float hei ) {
 		width = wid;
 		height = hei;
+	}
+	void SetRotation(float x, float y, float z, float w) {
+		w = (-w + 360);
+		while (w < 0)
+			w += 360;
+		while (w > 360)
+			w -= 360;
+		float qr = cos(w * 3.1415926 / 360);
+		float s = sin(w * 3.1415926 / 360);
+		rotation.w = qr; rotation.x = x * s; rotation.y = y * s; rotation.z = z *s;
+		normalizedVector4(&rotation);
 	}
 	void SetDirection(VECTOR4* dir) {
 		direction = normalizedVector3(direction,dir); 
@@ -28,31 +40,29 @@ public :
 		position = new VECTOR4();
 		direction = new VECTOR4();  
 
-		position->x = 0; position->y =1 ; position->z = -3; position->w = 1;
+		position->x = 0; position->y =-3 ; position->z = -10; position->w = 1;
 		direction->x = 0; direction->y = 0; direction->z = 1; direction->w = 0; 
-
+		SetRotation(1, 0, 0, 0);
 		fov = 60;
 		nearZ = 0.3f;
 		farZ = 4000;
 	}
 
-	void GetCamCoordinateTransformVert(Object* vs,bool normalConvert = false) { 
-		MATRIX4x4* ma = new MATRIX4x4();
-		GenerateCamMatrix(position, ma);
+	void GetCamCoordinateTransformVert(Object* vs, MatrixStore& store,bool normalConvert = false) { 
+		GenerateCamMatrix(position, &store.W2CamM);
 		for (int i = 0; i < vs->vertCount; i++) {
-			matrixdot(vs->verts[i].position, vs->verts[i].position, ma); 
-		}
-		for (int i = 0; i < vs->prefab->normalCount; i++) {
-		//	matrixdot(vs->verts[i].normal, vs->verts[i].normal, ma);
-		}
+			matrixdot(vs->verts[i].position, vs->verts[i].position, &store.W2CamM);
+			matrixdot(vs->verts[i].position, vs->verts[i].position, &store.W2CamR);
+
+		//	matrixdot(vs->verts[i].normal, vs->verts[i].normal, &store.W2CamR);
+		} 
 	}
 
-	void GetClipSpaceTransfromVert(Object* vs) {
-		MATRIX4x4 * ma = new MATRIX4x4();
-		GenerateClipTransformMatrix(ma);
+	void GetClipSpaceTransfromVert(Object* vs,MatrixStore& store) { 
+		GenerateClipTransformMatrix( &store.C2OthroM); 
 		float halfw = width / 2, halfh = height / 2;
 		for (int i = 0; i < vs->vertCount; i++) { 
-			matrixdot(vs->verts[i].position, vs->verts[i].position, ma); 
+			matrixdot(vs->verts[i].position, vs->verts[i].position,& store.C2OthroM);
 			vs->verts[i].uv->x =  halfw* (1+ vs->verts[i].position->x / vs->verts[i].position->w );
 			vs->verts[i].uv->y  =  halfh* (1+  vs->verts[i].position->y / vs->verts[i].position->w );
 			vs->verts[i].position->x = (halfw* (1 + vs->verts[i].position->x / vs->verts[i].position->w) );
@@ -80,6 +90,5 @@ public :
 		res->val[3][2] = 2 * farZ*nearZ / (nearZ - farZ);
 		res->val[2][3] = 1; 
 		return res;
-	} 
-
+	}
 }; 

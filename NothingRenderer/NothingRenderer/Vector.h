@@ -207,8 +207,20 @@ namespace MATRIX {
 		ma->val[1][1] = 1;
 		ma->val[0][0] = 1;
 	}
+	void GenerateTransformMatrix(VECTOR4* pos,VECTOR3& scale , MATRIX4x4* ma) {
+		ma->val[3][0] = pos->x;
+		ma->val[3][1] = pos->y;
+		ma->val[3][2] = pos->z;
+		ma->val[3][3] = 1;
+		ma->val[2][2] = scale.z;
+		ma->val[1][1] = scale.y;
+		ma->val[0][0] = scale.x;
+	}
 	void GenerateRotateMatrix(VECTOR4& ax, MATRIX4x4* ma) {
 		normalizedVector4(&ax);
+
+
+
 		ma->val[0][0] = 1 - 2 * (ax.y * ax.y + ax.z * ax.z);
 		ma->val[1][0] = 2 * (ax.x * ax.y + ax.z * ax.w);
 		ma->val[2][0] = 2 * (ax.x * ax.z - ax.y * ax.w);
@@ -233,7 +245,7 @@ namespace MATRIX {
 		ma->val[2][1] = ax->y *ax->z *(1 - c) - ax->x *s;
 		ma->val[2][2] = c + ax->z * ax->z *(1 - c); */
 
-	}
+	} 
 	/*
 	void GenerateRotateMatrix(VECTOR4& a,  MATRIX4x4* ma) { 
 		normalizedVector4(&a);

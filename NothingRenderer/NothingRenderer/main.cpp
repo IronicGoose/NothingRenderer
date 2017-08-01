@@ -19,11 +19,12 @@ ObjectHolder * holder;
 
 void RenderACube() {
 //	eye.GenerateCenterPoint();  
-	VECTOR4  pos(0, 0, 4, 1);
+	VECTOR4  pos(0, 0, 0, 1);
 	Object *object = new Object(); 
-	pipeline.CreateObject("cube001", "cube", &pos);
+	pipeline.CreateObject("cube001", "cube", &pos); 
 	pos.y = 4;
-	pipeline.CreateObject("sphere", "sphere", &pos);
+	//pipeline.CreateObject("sphere", "sphere", &pos);
+	pipeline.CreateObject("floor", "cube", &pos);
 	pipeline.LoadPicture();
 	pipeline.RenderAll(); 
 //	pipeline.RenderTarget(*object);
@@ -34,10 +35,15 @@ float  t = 0;
 void Mainloop() {
 	t += 5;
 	Object* cube = pipeline.GetObject("cube001");
+	Object* floor = pipeline.GetObject("floor");
 	Object* sphere = pipeline.GetObject("sphere");
-	sphere->SetRotation(1,1 ,1,t); 
-	cube->SetRotation(1, 1, 1,  t);
-	cube->SetPosition(sin(t* 3.141592657/180) *1, cos(t* 3.141592657 / 180) * 1, 1,  t);
+	floor->SetScale(1, 0.5, 1);
+//	sphere->SetRotation(0,1 ,0,t); 
+//	sphere->SetPosition(0, 0, -2,1);
+	floor->SetPosition(0, 0, 5, 1);
+	//cube->SetRotation(0, 1, 0,  t);
+	pipeline.m_cam.SetRotation(1, 0, 0, 0); 
+	cube->SetPosition(sin(t* 3.141592657/180) *1, cos(t* 3.141592657 / 180) * 1, 3,  t);
 	VECTOR4 col;
 	glClear(GL_COLOR_BUFFER_BIT);
 	glBegin(GL_POINTS);
