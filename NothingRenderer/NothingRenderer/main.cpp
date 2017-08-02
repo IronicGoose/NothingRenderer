@@ -29,35 +29,46 @@ void StartRender() {
 	pipeline.RenderAll();  
 }  
 float camRot = 0;
-float camX = 0, camY = 0, camZ = 0;
+float camX = 0, camY = 0, camZ = -10;
 void GlKeyCall(unsigned char key, int xmouse, int ymouse) { 
 	switch (key) {
 	case 'e':
 		camRot += 3;
-		pipeline.m_cam.SetRotation(1, 0, 0, camRot); 
+		pipeline.m_directionLight.SetRotation(1, 0, 0, camRot);
 		break;
 
 	case 'q':
 		camRot -= 3;
-		pipeline.m_cam.SetRotation(1, 0, 0, camRot); 
+		pipeline.m_directionLight.SetRotation(1, 0, 0, camRot);
 		break;
-	case 'w':
+	case 's':
 		camY += 0.3;
-		pipeline.m_cam.SetPosition(camX, camY, pipeline.m_cam.position->z);
+		pipeline.m_directionLight.SetPosition(camX, camY, camZ);
 		break;
 
 	case 'a':
 		camX -= 0.3;
-		pipeline.m_cam.SetPosition(camX, camY, pipeline.m_cam.position->z);
+		pipeline.m_directionLight.SetPosition(camX, camY, camZ);
 		break;
-	case 's':
+	case 'z':
+		camZ -= 0.3;
+		pipeline.m_directionLight.SetPosition(camX, camY, camZ);
+		break;
+	case 'c':
+		camZ += 0.3;
+		pipeline.m_directionLight.SetPosition(camX, camY, camZ);
+		break;
+	case 'w':
 		camY -= 0.3;
-		pipeline.m_cam.SetPosition(camX, camY, pipeline.m_cam.position->z);
+		pipeline.m_directionLight.SetPosition(camX, camY, camZ);
 		break;
 
 	case 'd':
 		camX += 0.3;
-		pipeline.m_cam.SetPosition(camX, camY, pipeline.m_cam.position->z);
+		pipeline.m_directionLight.SetPosition(camX, camY, camZ);
+		break;
+	case 'm':
+		pipeline.showShadowMap = !pipeline.showShadowMap;
 		break;
 	} 
 }
@@ -71,6 +82,7 @@ void Mainloop() {
 	sphere->SetRotation(0,1 ,0,t); 
 	sphere->SetPosition(0, 0, -2,1); 
 	floor->SetPosition(0, 0, 5, 1);
+	floor->SetRotation(0, 1, 0, t);
 	//cube->SetRotation(0, 1, 0,  t);
 	cube->SetPosition(sin(t* 3.141592657/180) *1, cos(t* 3.141592657 / 180) * 1, 3,  t);
 	VECTOR4 col;

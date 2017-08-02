@@ -45,7 +45,7 @@ public :
 		position = new VECTOR4();
 		direction = new VECTOR4();  
 
-		position->x = 0; position->y =  0 ; position->z = -15; position->w = 1;
+		position->x = 0; position->y =  0 ; position->z = -10; position->w = 1;
 		direction->x = 0; direction->y = 0; direction->z = 1; direction->w = 0;  
 
 		SetRotation(1, 0, 0, 0);
@@ -66,8 +66,7 @@ public :
 		SelfRotateApply();
 		GenerateCamMatrix(position, &store.W2CamM);
 		for (int i = 0; i < vs->vertCount; i++) {
-			matrixdot(vs->verts[i].position, vs->verts[i].position, &store.W2CamM);
-		//	matrixdot(vs->verts[i].position, vs->verts[i].position, &store.W2CamR); 
+			matrixdot(vs->verts[i].position, vs->verts[i].position, &store.W2CamM);  
 		} 
 	}
 	void GetClipSpaceTransfromVert(Object* vs,MatrixStore& store) { 
@@ -98,6 +97,7 @@ public :
 		ma->val[0][2] = n.x;
 		ma->val[1][2] = n.y;
 		ma->val[2][2] = n.z;
+		ma->val[3][3] = 1;
 	}
 	MATRIX4x4* GenerateClipTransformMatrix(MATRIX4x4 * res){ 
 		float ar = width / height;

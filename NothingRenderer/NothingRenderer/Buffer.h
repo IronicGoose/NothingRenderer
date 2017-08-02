@@ -72,8 +72,7 @@ public:
 	void SwapBuffer() {
 		m_isSwap = !m_isSwap;
 	}
-}; 
-
+};  
 Buffer::Buffer()
 { 
 } 

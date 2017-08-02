@@ -39,7 +39,7 @@ public :
 	int done = 0; 
 	DirectionLight m_directionLight; 
 	bool isShadowMapGen = false;
-	bool useTexture;
+	bool useTexture,showShadowMap = false;
 	VECTOR4 lightDir;
 	PipelineController();
 	void CreateBuffer(int w, int h) {
@@ -96,7 +96,7 @@ public :
 			matrixdot(obj->verts[i].position, obj->verts[i].position,&store.loacl2WorldM);  
 		}
 	}  
-	void GetAffineWeight(VECTOR4* A , VECTOR4 * B ,  VECTOR4* C,  float Px ,float Py , float pw, VECTOR3* res) {
+	void GetAffineWeight(VECTOR4* A , VECTOR4 * B ,  VECTOR4* C,  int Px ,int Py , float pw, VECTOR3* res) {
 		float a, b, c;
 		float x1, y1, x2, y2, x3, y3;
 		x1 = A->x /A->w;
@@ -105,16 +105,16 @@ public :
 		y2 = B->y /B->w;
 		x3 = C->x /C->w;
 		y3 = C->y /C->w;
-		Px = Px  /pw;
-		Py = Py /pw;   
-		c = ((y1 - y2) * Px + (x2 - x1) * Py + x1 * y2 - x2 * y1) /  ((y1 - y2) * x3 + (x2 - x1) * y3 + x1 * y2 - x2 * y1)  ; 
-		b = ((y1 - y3) * Px + (x3 - x1) * Py + x1 * y3 - x3 * y1) /  ((y1 - y3) * x2 + (x3 - x1) * y2 + x1 * y3 - x3 * y1) ; 
+		float px = Px  /pw;
+		float py = Py /pw;   
+		c = ((y1 - y2) * px + (x2 - x1) * py + x1 * y2 - x2 * y1) /  ((y1 - y2) * x3 + (x2 - x1) * y3 + x1 * y2 - x2 * y1)  ; 
+		b = ((y1 - y3) * px + (x3 - x1) * py + x1 * y3 - x3 * y1) /  ((y1 - y3) * x2 + (x3 - x1) * y2 + x1 * y3 - x3 * y1) ; 
 		a = 1 - b - c;    
 		res->x = a;
 		res->y = b;
 		res->z = c;  
 	} 
-	float GetWValue(VECTOR4* A  ,VECTOR4 * B,    VECTOR4* C ,float Px,float  Py) {
+	float GetWValue(VECTOR4* A  ,VECTOR4 * B,    VECTOR4* C ,int Px,int  Py) {
 		float a, b, c;
 		float  x1, y1, x2, y2, x3, y3;
 		x1 = A->x  ;
@@ -126,9 +126,18 @@ public :
 		c = ((y1 - y2) * Px + (x2 - x1) * Py + x1 * y2 - x2 * y1) /  ((y1 - y2) * x3 + (x2 - x1) * y3 + x1 * y2 - x2 * y1);
 		b = ((y1 - y3) * Px + (x3 - x1) * Py + x1 * y3 - x3 * y1) /  ((y1 - y3) * x2 + (x3 - x1) * y2 + x1 * y3 - x3 * y1);
 		a = 1 - b - c;
+		 /*
+		a = abs((Px*(y2 - y3) + x2*(y3 - Py) + x3 *(Py - y2)) / 2);
+		b = abs((x1*(Py - y3) + Px*(y3 - y1) + x3 *(y1 - Py)) / 2);
+		c = abs((x1*(y2 - Py) + x2*(Py - y1) + Px *(y1 - y2)) / 2);
+		float s = a + b + c;
+		a = a / s; 
+		b = b / s; 
+		c = c / s;*/
+
 		return A->w * a + B->w * b + C->w * c;
 	}
-	float GetZValue(VECTOR4* A, VECTOR4 * B, VECTOR4* C, float Px, float  Py) {
+	float GetZValue(VECTOR4* A, VECTOR4 * B, VECTOR4* C, int Px, int  Py) {
 		float a, b, c;
 		float  x1, y1, x2, y2, x3, y3;
 		x1 = A->x;
@@ -136,15 +145,30 @@ public :
 		x2 = B->x;
 		y2 = B->y;
 		x3 = C->x;
-		y3 = C->y; 
+		y3 = C->y;
+		c = ((y1 - y2) * Px + (x2 - x1) * Py + x1 * y2 - x2 * y1) / ((y1 - y2) * x3 + (x2 - x1) * y3 + x1 * y2 - x2 * y1);
+		b = ((y1 - y3) * Px + (x3 - x1) * Py + x1 * y3 - x3 * y1) / ((y1 - y3) * x2 + (x3 - x1) * y2 + x1 * y3 - x3 * y1);
+		a = 1 - b - c; 
+
+		return A->z * a + B->z * b + C->z * c;
+	}
+	bool IsInsideTriangle(VECTOR4* A, VECTOR4 * B, VECTOR4* C, int Px, int  Py) {
+		float a, b, c;
+		float  x1, y1, x2, y2, x3, y3;
+		x1 = A->x;
+		y1 = A->y;
+		x2 = B->x;
+		y2 = B->y;
+		x3 = C->x;
+		y3 = C->y;
 
 		c = ((y1 - y2) * Px + (x2 - x1) * Py + x1 * y2 - x2 * y1) / ((y1 - y2) * x3 + (x2 - x1) * y3 + x1 * y2 - x2 * y1);
 		b = ((y1 - y3) * Px + (x3 - x1) * Py + x1 * y3 - x3 * y1) / ((y1 - y3) * x2 + (x3 - x1) * y2 + x1 * y3 - x3 * y1);
 		a = 1 - b - c;
 		if (a < 0 || a> 1 || b < 0 || b > 1 || c< 0 || c > 1) {
-			return -99;
+			return false;
 		}
-		return A->z * a + B->z * b + C->z * c;
+		return true;
 	}
 	int GetOrder(VShaderInfo i, VERT&  A) {
 		if (i.order[0] == A.vertNum)
@@ -177,7 +201,40 @@ public :
 		copy(A.position, &(info.pos[order]));
 
 	}  
-	 
+	void Drawpoint(VShaderInfo& info, int x, int y) { 
+		VECTOR4 col;
+		if (!ValidScreamPos(x, y)) {
+			return;
+		}
+		float depth;
+		depth = GetWValue(info.A->position, info.B->position, info.C->position, x,  y);
+		depth = 1 / depth;
+		if (depth > m_buffer.GetZBufferValue(x ,   y) || depth < 0) {
+			return;
+		}
+		if (FragmentProcessShader(x ,  y, info.A, info.B, info.C, info, &col)) { 
+			m_buffer.WriteToColorBuffer(x, y, &col);
+			m_buffer.WriteToZBuffer(depth, x, y);
+		} 
+	 }
+	void DrawpointS(VShaderInfo& info, int x, int y) {
+		VECTOR4 col;
+		if (!ValidScreamPos(x, y)) { 
+			if (!ValidScreamPos(x, y)) {
+				return;
+			}
+			if (!IsInsideTriangle(info.A->position, info.B->position, info.C->position, x, y))
+				return;
+			float depth = GetZValue(info.A->position, info.B->position, info.C->position, x, y);
+			if (depth > m_directionLight.ReadShadowMap(x, y) || depth < 0) {
+				return;
+			}
+			m_directionLight.WriteToShadowMap(depth, x, y);
+
+
+			return;
+		} 
+	}
 	void Swap(DrawTrianglePoint& a, DrawTrianglePoint& b) {
 		DrawTrianglePoint c;
 		c.FROM = a.FROM;
@@ -201,48 +258,9 @@ public :
 
 
 	} 
-	void DrawLine(DrawTrianglePoint& a, DrawTrianglePoint& b, DrawTrianglePoint& c, VShaderInfo& info ) {
-	//	//for line ab 
-	//	VECTOR4 col(1, 0, 0, 0);
-	//	float u = a.x, v = a.y;
-	////	float depth;
-	//	for (int i = 0; i <= a.dis; i++) {
-	//		u = a.x + i* a.dir.x; v = a.y + i* a.dir.y;
-	//		if (!ValidScreamPos(u, v))
-	//			continue; 
-	//		  
-	//		m_buffer.WriteToColorBuffer(u, v, &col);
-	//		m_buffer.WriteToZBuffer(99,u, v );
-
-	//	}
-
-	//	u = b.x, v = b.y;
-	//	for (int i = 0; i < b.dis; i++) {
-	//		u = b.x + i* b.dir.x; v = b.y + i* b.dir.y;
-	//		if (!ValidScreamPos(u, v))
-	//			continue;
-	//		 
-
-	//		m_buffer.WriteToColorBuffer(u, v, &col);
-	//		m_buffer.WriteToZBuffer(99, u, v);
-	//		 
-	//	}
-
-
-
-	//	u = c.x, v = c.y;
-	//	for (int i = 0; i < c.dis; i++) {
-	//		u = c.x + i* c.dir.x; v = c.y + i* c.dir.y;
-	//		if (!ValidScreamPos(u, v))
-	//			continue; 
-	//		 
-	//		 
-	//		m_buffer.WriteToColorBuffer(u , v, &col);
-	//		m_buffer.WriteToZBuffer(99, u, v);
-	//	}
-
+	void DrawLine(DrawTrianglePoint& a, DrawTrianglePoint& b, DrawTrianglePoint& c, VShaderInfo& info ) {  
 	}
-	bool FragmentProcessShader(float x, float y, VERT* a, VERT*  b, VERT* c, VShaderInfo& info, VECTOR4* outColor) {
+	bool FragmentProcessShader(int x,int y, VERT* a, VERT*  b, VERT* c, VShaderInfo& info, VECTOR4* outColor) {
 		VECTOR3 res;
 		
 		float u, v;
@@ -280,10 +298,10 @@ public :
 		normalizedVector3(&viewDir, &viewDir);
 		normalizedVector3(&normalA, &normalA); 
 
-		float amb = dot3x3(&lightDir, &normalA);
+		float amb = dot3x3(&m_directionLight.lightDir, &normalA);
 		VECTOR4 r;
 		VECTOR::dot(&r, &normalA, 2 * amb);
-		minusV3(&r, &r, &lightDir);
+		minusV3(&r, &r, &m_directionLight.lightDir);
 		normalizedVector3(&r, &r);
 		float  sth = dot3x3(&r, &viewDir);
 		sth = sth *0.5 + 0.5;
@@ -305,7 +323,7 @@ public :
 		float dis = m_directionLight.farZ - m_directionLight.nearZ;
 		for (int i = 0; i < m_directionLight.width; i++) {
 			for (int j = 0; j < m_directionLight.height -1; j++) {
-				col.x =1 / (dis* m_directionLight.ReadShadowMap(i, j));
+				col.x = m_directionLight.ReadShadowMap(i, j) / (dis);
 				col.y = col.x; col.z = col.x;
 				m_buffer.WriteToColorBuffer(i, j,&col);
 			} 
@@ -319,17 +337,15 @@ public :
 		if (xl > xr) {
 			swap(xl, xr);
 		} 
+		xl -= 3; xr += 3;
 		for (int i = 0; xl + i <= xr; i++) {
 			if (!ValidScreamPos(xl + i, a.y)) {
 				continue;
 			} 
-			float depth;
-			if (a.FROM == b.FROM)
-				depth = GetZValue(a.FROM->position, a.TO->position, b.TO->position, xl + i, a.y);
-			else
-				depth = GetZValue(a.FROM->position, a.TO->position, b.FROM->position, xl + i, a.y); 
-			depth = 1 / depth; 
-			if ( depth < m_directionLight.ReadShadowMap(xl + i, a.y) || depth < 0) {
+			if (!IsInsideTriangle(info.A->position, info.B->position, info.C->position, xl + i, a.y))
+				continue;
+			float depth = GetZValue(info.A->position, info.B->position, info.C->position, xl + i, a.y);
+			if (depth > m_directionLight.ReadShadowMap(xl + i, a.y) || depth < 0) {
 				continue;
 			}  
 			m_directionLight.WriteToShadowMap(depth,xl + i, a.y); 
@@ -340,12 +356,14 @@ public :
 		if (xl == xr) { 
 			return;
 		}
+
 		VECTOR4 col(1, 1, 1, 0);  
+
 		if (xl > xr) {
 			swap(xl, xr);  
 		}    
 
-		xl = xl - 1; xr = xr + 1;
+		xl = xl - 3; xr = xr + 3;
 
 		for (int i = 0; xl + i <= xr ; i++) {
 			if (!ValidScreamPos(xl + i, a.y)) {  
@@ -416,26 +434,45 @@ public :
 
 		int y = A->position->y; 
 		if ((int) A->position->y == (int)B->position->y && (int)A->position->y == (int)C->position->y)
-		{ 
+		{  
+			float xmin = A->position->x, xmax = A->position->x;
+			if (xmin > B->position->x) xmin = B->position->x; if (xmax < B->position->x) xmax = B->position->x;
+			if (xmin > C->position->x) xmin = C->position->x; if (xmax < C->position->x) xmax = C->position->x;
+			for (int i = xmin; i < xmax; i++) {
+				if(!isShadowMapGen)
+					Drawpoint(info, i, A->position->y);
+				else 
+					DrawpointS(info, i, A->position->y);
+			}
 			return;
-		}
-
+		} 
 		if (ab.count < 0 || ac.count <0) 
 			return;
-		if(!isShadowMapGen)
-			DrawLine(ab, ac,bc, info); 
+		disAB += 5; disAC += 5; disbc += 5;
 
 		for (; ab.count < disAB && ac.count < disAC;) {  
 
 			while ((int)ab.y != y )
 			{
 				ab.count++;	ab.x += ab.dir.x; ab.y += ab.dir.y;
-				//DrawPoint(ab,info);  
+				if (!isShadowMapGen)
+					Drawpoint(info,ab.x, ab.y);
+				else
+					DrawpointS(info, ab.x, ab.y);
+
+				if (ab.count > disAB)
+					break;
 			}
 			while ((int)ac.y != y)
 			{
-				ac.count++;  ac.Move(); 
-				//DrawPoint(ac, info);  
+				ac.count++;  ac.Move();
+				if (!isShadowMapGen)
+					Drawpoint(info, ac.x, ac.y);
+				else
+					DrawpointS(info, ac.x, ac.y);
+				
+				if (ac.count > disAC)
+					break; 
 			} 
 			if (ab.count >= disAB || ac.count >= disAC)
 				break; 
@@ -466,13 +503,23 @@ public :
 				RasterLineShadow(ab, bc, info);
 			while ((int)ab.y != y)
 			{
-				ab.count++;	ab.Move(); 
+				ab.count++;	ab.Move();
+				if (!isShadowMapGen)
+					Drawpoint(info, ab.x, ab.y);
+				else
+					DrawpointS(info, ab.x, ab.y);
+
 				if (ab.count >= disAB)
 					break;
 			}
 			while ((int)bc.y != y)
 			{
-				bc.count++;  bc.Move(); 
+				bc.count++;  bc.Move();
+				if (!isShadowMapGen)
+					Drawpoint(info, bc.x, bc.y);
+				else
+					DrawpointS(info, bc.x, bc.y);
+
 				if (bc.count >= disAB)
 					break;
 			}
@@ -536,6 +583,7 @@ void PipelineController::RenderAll() {
 	for (int i = 0; i < targetLength; i++) { 
 		RenderShadowMap(*m_renderTargets[i]);
 	}
+
 	isShadowMapGen = false;  
 
 	for (int i = 0; i < targetLength; i++) {
@@ -545,8 +593,9 @@ void PipelineController::RenderAll() {
 			useTexture = false;
 		RenderTarget(*m_renderTargets[i]);
 	}
-	  
-	//ShowShadowMap();
+	if (showShadowMap) {
+		ShowShadowMap();
+	  } 
 	m_buffer.SwapBuffer();
 	m_directionLight.ClearShadowMap();
 }
@@ -604,8 +653,8 @@ void PipelineController::RenderShadowMap(Object& object) {
 	int i = 0; 
 	int threadCount = 5;
 	int threadMissionCount = object.prefab->faceCount / threadCount;
-	int startCount = 0, endCount = threadMissionCount;
-
+	int startCount = 0, endCount = threadMissionCount; 
+	
 	thread t1(MultiFaceDraw, ref(object), startCount, endCount, &viewDir, this, vInfo);
 	startCount = endCount; endCount += threadMissionCount;
 	thread t2(MultiFaceDraw, ref(object), startCount, endCount, &viewDir, this, vInfo);
@@ -616,12 +665,12 @@ void PipelineController::RenderShadowMap(Object& object) {
 	startCount = endCount; endCount += threadMissionCount;
 	thread t5(MultiFaceDraw, ref(object), startCount, object.prefab->faceCount, &viewDir, this, vInfo);
 	t1.join(); t2.join(); t3.join(); t4.join();
-	t5.join();
-
+	t5.join(); 
 	while (done != 5)
 	{
 	}
 	done = 0;
+	delete[]vInfo;
 }
 void PipelineController::RenderTarget(Object &  object) { 
 	VECTOR4 viewDir(0, 0, 0, 0);
@@ -746,4 +795,5 @@ void PipelineController::RenderTarget(Object &  object) {
 	//B->color->x = (float)i / 8; B->color->y = (float)i / 8; B->color->z = (float)i / 8;
 	//C->color->x = (float)i / 8; C->color->y = (float)i / 8; C->color->z = (float)i / 8;
 	//RasterizationTriangle(A, B, C);
+	delete[]vInfo;
 }
