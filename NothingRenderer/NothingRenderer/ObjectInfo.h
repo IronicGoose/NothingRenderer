@@ -13,7 +13,8 @@ struct FACEINFO {
 class  VERT {
 public:
 	int vertNum;
-	VECTOR4 * position; 
+	VECTOR4 * position;
+	VECTOR4 worldPos;
 	VECTOR4 * normal;
 	VECTOR4 * color;
 	VECTOR2* tv;

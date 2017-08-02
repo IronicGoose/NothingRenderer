@@ -78,8 +78,8 @@ public:
 		normalizedVector3(&v, &v);
 		normalizedVector3(&n, &n);
 		lightDir.x = n.x;
-		lightDir.x = n.y;
-		lightDir.x = n.z;
+		lightDir.y = n.y;
+		lightDir.z = -n.z;
 		ma->val[3][0] = -pos->x *u.x - pos->y*u.y - pos->z *u.z;
 		ma->val[3][1] = -pos->x *v.x - pos->y*v.y - pos->z *v.z;
 		ma->val[3][2] = -pos->x *n.x - pos->y*n.y - pos->z *n.z;
@@ -101,7 +101,8 @@ public:
 			matrixdot(vs->verts[i].position, vs->verts[i].position, &store.C2OthroM);
 			vs->verts[i].position->x = halfw* (1 + vs->verts[i].position->x / vs->verts[i].position->w);
 			vs->verts[i].position->y = halfh* (1 + vs->verts[i].position->y / vs->verts[i].position->w); 
-			vs->verts[i].position->z = vs->verts[i].position->w; 
+			vs->verts[i].position->z = vs->verts[i].position->w;
+			vs->verts[i].position->w = 1/vs->verts[i].position->w;
 		}
 	}
 	void GenerateOrthoMatrix(MATRIX4x4& res) {

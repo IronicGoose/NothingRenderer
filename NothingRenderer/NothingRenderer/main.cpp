@@ -23,53 +23,139 @@ void StartRender() {
 	Object *object = new Object(); 
 	pipeline.CreateObject("cube001", "cube", &pos); 
 	pos.y = 0;
-	pipeline.CreateObject("sphere", "sphere", &pos);
+	//pipeline.CreateObject("sphere", "sphere", &pos);
 	pipeline.CreateObject("floor", "cube", &pos);
 	pipeline.LoadPicture();
 	pipeline.RenderAll();  
 }  
-float camRot = 0;
+float camRot = 0,lightRot = 0;
 float camX = 0, camY = 0, camZ = -10;
+float lightX = 0, lightY = 0, lightZ = -10;
+bool moveSwitch = false;
 void GlKeyCall(unsigned char key, int xmouse, int ymouse) { 
 	switch (key) {
 	case 'e':
-		camRot += 3;
-		pipeline.m_directionLight.SetRotation(1, 0, 0, camRot);
-		break;
+		if (moveSwitch) {
+			camRot += 3;
+			pipeline.m_cam.SetRotation(1, 0, 0, camRot);
+			break;
+		}
+		else
+		{
+			lightRot += 3;
+			pipeline.m_directionLight.SetRotation(1, 0, 0, lightRot);
+			break;
+
+		}
 
 	case 'q':
-		camRot -= 3;
-		pipeline.m_directionLight.SetRotation(1, 0, 0, camRot);
-		break;
+		if (moveSwitch) {
+			camRot -= 3;
+			pipeline.m_cam.SetRotation(1, 0, 0, camRot);
+			break;
+		}
+		else
+		{
+			lightRot -= 3;
+			pipeline.m_directionLight.SetRotation(1, 0, 0, lightRot);
+			break;
+
+		}
 	case 's':
-		camY += 0.3;
-		pipeline.m_directionLight.SetPosition(camX, camY, camZ);
-		break;
+		if (moveSwitch) {
+			camY += 0.3;
+			pipeline.m_cam.SetPosition(camX, camY, camZ);
+			break;
+		}
+		else
+		{
+			lightY += 0.3;
+			pipeline.m_directionLight.SetPosition(lightX, lightY, lightZ);
+			break;
+
+		}
 
 	case 'a':
-		camX -= 0.3;
-		pipeline.m_directionLight.SetPosition(camX, camY, camZ);
-		break;
+		if (moveSwitch) {
+			camX -= 0.3;
+			pipeline.m_cam.SetPosition(camX, camY, camZ);
+			break;
+		}
+		else
+		{
+			lightX -= 0.3;
+			pipeline.m_directionLight.SetPosition(lightX, lightY, lightZ);
+			break;
+
+		}
 	case 'z':
-		camZ -= 0.3;
-		pipeline.m_directionLight.SetPosition(camX, camY, camZ);
-		break;
+		if (moveSwitch) {
+			camZ -= 0.3;
+			pipeline.m_cam.SetPosition(camX, camY, camZ);
+			break;
+		}
+		else
+		{
+			lightZ -= 0.3;
+			pipeline.m_directionLight.SetPosition(lightX, lightY, lightZ);
+			break;
+		}
 	case 'c':
-		camZ += 0.3;
-		pipeline.m_directionLight.SetPosition(camX, camY, camZ);
-		break;
+		if (moveSwitch) {
+			camZ += 0.3;
+			pipeline.m_cam.SetPosition(camX, camY, camZ);
+			break;
+		}
+		else
+		{
+			lightZ += 0.3;
+			pipeline.m_directionLight.SetPosition(lightX, lightY, lightZ);
+			break;
+
+		}
 	case 'w':
-		camY -= 0.3;
-		pipeline.m_directionLight.SetPosition(camX, camY, camZ);
-		break;
+		if (moveSwitch) {
+			camY -= 0.3;
+			pipeline.m_cam.SetPosition(camX, camY, camZ);
+			break;
+		}
+		else
+		{
+			lightY -= 0.3;
+			pipeline.m_directionLight.SetPosition(lightX, lightY, lightZ);
+			break; 
+		}
 
 	case 'd':
-		camX += 0.3;
-		pipeline.m_directionLight.SetPosition(camX, camY, camZ);
-		break;
+		if (moveSwitch) {
+			camX += 0.3;
+			pipeline.m_cam.SetPosition(camX, camY, camZ);
+			break;
+		}
+		else
+		{
+			lightX += 0.3;
+			pipeline.m_directionLight.SetPosition(lightX, lightY, lightZ);
+
+			break;
+		}
 	case 'm':
 		pipeline.showShadowMap = !pipeline.showShadowMap;
 		break;
+	case 'n':
+		pipeline.shadowCast = !pipeline.shadowCast;
+		break;
+	case 'l':
+		pipeline.log = !pipeline.log;
+		break;
+	case 'k':
+		pipeline.log2 = !pipeline.log2;
+		break;
+
+	case 'h':
+		moveSwitch = !moveSwitch;
+		break;
+
 	} 
 }
 float  t = 0;
@@ -77,12 +163,12 @@ void Mainloop() {
 	t += 5;
 	Object* cube = pipeline.GetObject("cube001");
 	Object* floor = pipeline.GetObject("floor");
-	Object* sphere = pipeline.GetObject("sphere");
-	floor->SetScale(1, 0.5, 1);
-	sphere->SetRotation(0,1 ,0,t); 
-	sphere->SetPosition(0, 0, -2,1); 
+//	Object* sphere = pipeline.GetObject("sphere");
+//	floor->SetScale(1, 0.5, 1);
+//	sphere->SetRotation(0,1 ,0,t); 
+	//sphere->SetPosition(0, 0, -2,1); 
 	floor->SetPosition(0, 0, 5, 1);
-	floor->SetRotation(0, 1, 0, t);
+//	floor->SetRotation(0, 1, 0, t);
 	//cube->SetRotation(0, 1, 0,  t);
 	cube->SetPosition(sin(t* 3.141592657/180) *1, cos(t* 3.141592657 / 180) * 1, 3,  t);
 	VECTOR4 col;

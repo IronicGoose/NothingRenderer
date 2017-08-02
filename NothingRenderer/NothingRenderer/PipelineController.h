@@ -39,7 +39,7 @@ public :
 	int done = 0; 
 	DirectionLight m_directionLight; 
 	bool isShadowMapGen = false;
-	bool useTexture,showShadowMap = false;
+	bool useTexture, showShadowMap = false, shadowCast = false, log = false, log2 = false;
 	VECTOR4 lightDir;
 	PipelineController();
 	void CreateBuffer(int w, int h) {
@@ -315,6 +315,28 @@ public :
 			copy(m_BMPManager.GetBMPColor(u, v), outColor); 
 		dot(outColor, outColor, VlightAdjust); 
 
+		if(log2)
+			cout << "fragment world pos " << "  " << fragPosA.x << "  " << fragPosA.y << "  " << fragPosA.z << endl;
+		fragPosA.w = 1;
+		//apply shadow here
+		if (shadowCast) {
+			matrixdot(&fragPosA, &fragPosA, &m_directionLight.store.W2CamM);
+			matrixdot(&fragPosA, &fragPosA, &m_directionLight.store.C2OthroM);
+			fragPosA.x = m_directionLight.width* (1 + fragPosA.x / fragPosA.w) / 2;
+			fragPosA.y = m_directionLight.height * (1 + fragPosA.y / fragPosA.w) / 2;
+			fragPosA.z = fragPosA.w;
+			if (ValidScreamPos(fragPosA.x, fragPosA.y)) {
+				if(log)
+					cout << "Fragment shader uv " << fragPosA.x << "    " << fragPosA.y <<"    "<<fragPosA.z<< endl; 
+				if (abs(m_directionLight.ReadShadowMap(fragPosA.x, fragPosA.y) - fragPosA.z) > 0.1f) {
+					outColor->x *= 0.1;
+					outColor->y *= 0.1;
+					outColor->z *= 0.1;
+					
+				}
+			}
+
+		}
 		m_buffer.WriteToColorBuffer(x, y, outColor);
 		return true;
 	}  
@@ -341,13 +363,18 @@ public :
 		for (int i = 0; xl + i <= xr; i++) {
 			if (!ValidScreamPos(xl + i, a.y)) {
 				continue;
-			} 
+			}  
+			if(log2)
+				cout << " raster world vertex pos " << "  " << info.A->worldPos.x << "  " << info.A->worldPos.y << "  " << info.A->worldPos.z << endl;
 			if (!IsInsideTriangle(info.A->position, info.B->position, info.C->position, xl + i, a.y))
 				continue;
-			float depth = GetZValue(info.A->position, info.B->position, info.C->position, xl + i, a.y);
+			float depth = GetWValue(info.A->position, info.B->position, info.C->position, xl + i, a.y); 
+			depth = 1 / depth;
 			if (depth > m_directionLight.ReadShadowMap(xl + i, a.y) || depth < 0) {
 				continue;
 			}  
+			if(log)
+				cout << "raster shadow uv   " << xl + i << "  " << (int )a.y << "  " <<depth<< endl;
 			m_directionLight.WriteToShadowMap(depth,xl + i, a.y); 
 		} 
 	}
@@ -629,32 +656,34 @@ bool PipelineController::RemoveRenderTarget(Object ob) {
 }
 void PipelineController::RenderShadowMap(Object& object) {
 	VECTOR4 viewDir(0, 0, 0, 0);
-	int a, b, c; 
+	int a, b, c;
 	VECTOR2 va, vb, vc;
 	GenerateRotateMatrix(*object.rotation, &m_directionLight.store.local2WorldR);
 	GenerateRotateMatrix(m_directionLight.rotation, &m_directionLight.store.W2CamR);
-	GenerateTransformMatrix(object.position, &m_directionLight.store.loacl2WorldM); 
+	GenerateTransformMatrix(object.position, &m_directionLight.store.loacl2WorldM);
 	VShaderInfo* vInfo = new VShaderInfo[object.prefab->faceCount];
 	for (int i = 0; i < object.prefab->faceCount; i++) {
 		a = object.prefab->f[i]->a.x - 1;
 		b = object.prefab->f[i]->b.x - 1;
-		c = object.prefab->f[i]->c.x - 1; 
+		c = object.prefab->f[i]->c.x - 1;
 		VERT& AA = object.verts[a], &BB = object.verts[b], &CC = object.verts[c];
-		AA.vertNum = a; BB.vertNum = b; CC.vertNum = c; 
+		AA.vertNum = a; BB.vertNum = b; CC.vertNum = c;
 		vInfo[i].order[0] = AA.vertNum;
 		vInfo[i].order[1] = BB.vertNum;
-		vInfo[i].order[2] = CC.vertNum; 
-	}  
+		vInfo[i].order[2] = CC.vertNum;
+	}
 	GetVertsWorldSpace(&object, ref(m_directionLight.store));
 	m_directionLight.GetLightCoordinateTransformVert(&object);
-	m_directionLight.GenerateOrthoMatrix(m_directionLight.store.C2OthroM); 
-	m_directionLight.GetClipSpaceTransfromVert(&object );
+	m_directionLight.GenerateOrthoMatrix(m_directionLight.store.C2OthroM);
+	m_directionLight.GetClipSpaceTransfromVert(&object);
 	minusV3(&viewDir, m_cam.position, object.position);
-	int i = 0; 
+	int i = 0;
+
+	/*
 	int threadCount = 5;
 	int threadMissionCount = object.prefab->faceCount / threadCount;
-	int startCount = 0, endCount = threadMissionCount; 
-	
+	int startCount = 0, endCount = threadMissionCount;
+
 	thread t1(MultiFaceDraw, ref(object), startCount, endCount, &viewDir, this, vInfo);
 	startCount = endCount; endCount += threadMissionCount;
 	thread t2(MultiFaceDraw, ref(object), startCount, endCount, &viewDir, this, vInfo);
@@ -665,11 +694,24 @@ void PipelineController::RenderShadowMap(Object& object) {
 	startCount = endCount; endCount += threadMissionCount;
 	thread t5(MultiFaceDraw, ref(object), startCount, object.prefab->faceCount, &viewDir, this, vInfo);
 	t1.join(); t2.join(); t3.join(); t4.join();
-	t5.join(); 
+	t5.join();
 	while (done != 5)
 	{
 	}
-	done = 0;
+	done = 0;*/
+
+
+	i = 0;
+	for (; i < object.prefab->faceCount; i++) {
+	VERT* A, *B, *C;
+	a = object.prefab->f[i]->a.x - 1;
+	b = object.prefab->f[i]->b.x - 1;
+	c = object.prefab->f[i]->c.x - 1;
+	A = &(object.verts[a]); B = &(object.verts[b]); C = &(object.verts[c]);
+	vInfo[i].A = A, vInfo[i].B = B, vInfo[i].C = C;
+	RasterizationTriangle(vInfo[i]);
+	}
+
 	delete[]vInfo;
 }
 void PipelineController::RenderTarget(Object &  object) { 
@@ -724,7 +766,7 @@ void PipelineController::RenderTarget(Object &  object) {
 			copy(object.prefab->t[c], C->tv); 
 		}
 	} 
-	 
+	 /*
 	int threadCount = 5;
 	int threadMissionCount = object.prefab->faceCount / threadCount;
 	int startCount = 0,endCount = threadMissionCount;
@@ -743,33 +785,33 @@ void PipelineController::RenderTarget(Object &  object) {
 	while (done != 5)
 	{ 
 	}
-	done = 0;     
-	//i = 10;
-	//for (; i < object.prefab->faceCount; i++) {
-	//	VERT* A, *B, *C;
-	//	a = object.prefab->f[i]->a.x - 1;
-	//	b = object.prefab->f[i]->b.x - 1;
-	//	c = object.prefab->f[i]->c.x - 1;
-	//	A = &(object.verts[a]); B = &(object.verts[b]); C = &(object.verts[c]);
-	//	a = object.prefab->f[i]->a.y - 1;
-	//	b = object.prefab->f[i]->b.y - 1;
-	//	c = object.prefab->f[i]->c.y - 1;
-	//	copy(object.prefab->t[a], A->tv);
-	//	copy(object.prefab->t[b], B->tv);
-	//	copy(object.prefab->t[c], C->tv);
-	//	ab.x = B->position->x - A->position->x;
-	//	ab.y = B->position->y - A->position->y;
-	//	ab.z = B->zValue - A->zValue;
-	//	bc.x = C->position->x - B->position->x;
-	//	bc.y = C->position->y - B->position->y;
-	//	bc.z = C->zValue - B->zValue;
-	//	crossV3(normal, ab, bc);
-	//	normalized(normal);
-	//	//	if (VECTOR::dotV3(normal, viewDir) < 0)
-	//	//		continue;    
-	//	vInfo[i].A = A, vInfo[i].B = B, vInfo[i].C = C;
-	//	RasterizationTriangle(vInfo[i]);
-	//}
+	done = 0;   */  
+	i =0;
+	for (; i < object.prefab->faceCount; i++) {
+		//	VERT* A, *B, *C;
+		a = object.prefab->f[i]->a.x - 1;
+		b = object.prefab->f[i]->b.x - 1;
+		c = object.prefab->f[i]->c.x - 1;
+		A = &(object.verts[a]); B = &(object.verts[b]); C = &(object.verts[c]);
+		a = object.prefab->f[i]->a.y - 1;
+		b = object.prefab->f[i]->b.y - 1;
+		c = object.prefab->f[i]->c.y - 1;
+		copy(object.prefab->t[a], A->tv);
+		copy(object.prefab->t[b], B->tv);
+		copy(object.prefab->t[c], C->tv);
+		ab.x = B->position->x - A->position->x;
+		ab.y = B->position->y - A->position->y;
+		ab.z = B->position->z - A->position->z;
+		bc.x = C->position->x - B->position->x;
+		bc.y = C->position->y - B->position->y;
+		bc.z = C->position->z - B->position->z;
+		crossV3(normal, ab, bc);
+		normalized(normal);
+		//	if (VECTOR::dotV3(normal, viewDir) < 0)
+		//		continue;    
+		vInfo[i].A = A, vInfo[i].B = B, vInfo[i].C = C;
+		RasterizationTriangle(vInfo[i]);
+	}
 
 	 
 	//VERT* A, *B, *C;
