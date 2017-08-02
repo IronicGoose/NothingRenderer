@@ -23,7 +23,7 @@ public:
 		for (int i = 0; i < m_width * m_height; i++) {
 			copy(col, &m_frontColorBuffer[i]);
 			copy(col, &m_backColorBuffer[i]);
-			m_ZBuffer[i] = -99;
+			m_ZBuffer[i] = 99;
 		}
 	}
 	VECTOR4* GetWriteBuffer() {
@@ -43,7 +43,7 @@ public:
 	void ClearColBuffer(VECTOR4& col) { 
 		for (int i = 0; i < m_width * m_height; i++) {
 			copy(&col, &GetWriteBuffer()[i]);
-			m_ZBuffer[i] = -99;
+			m_ZBuffer[i] = 99;
 		}
 	}
 

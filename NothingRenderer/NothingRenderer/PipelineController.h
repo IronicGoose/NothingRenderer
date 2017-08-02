@@ -10,17 +10,9 @@
 #include"DirectionLight.h"
 using namespace std;
  
-using namespace VECTOR;
-
-struct MulThreadFACE {
-	VERT *A;
-	VERT *B;
-	VERT *C;
-};
-
+using namespace VECTOR; 
 struct DrawTrianglePoint {
-	float x, y, tarX, tarY;
-	int drawx, drawy;
+	float x, y ; 
 	VERT* FROM, *TO;
 	int count;
 	int dis;
@@ -44,12 +36,10 @@ class PipelineController {
 	MatrixStore store;
 public :
 	Camera m_cam;
-	int done = 0;
-	int m_threads;
-	DirectionLight m_directionLight;
-	//float orthoLeft, orthoRight, orthoTop, orthoBottom;
+	int done = 0; 
+	DirectionLight m_directionLight; 
 	bool isShadowMapGen = false;
-	bool useVShader = true,useFShader = false,useTexture;
+	bool useTexture;
 	VECTOR4 lightDir;
 	PipelineController();
 	void CreateBuffer(int w, int h) {
@@ -59,6 +49,8 @@ public :
 		m_directionLight.SetWidthHeight(w, h);
 		m_width = w; m_height = h; 
 	} 
+
+	//get color , call from main thread to draw buffer with openGL
 	const VECTOR4& GetBufferColor(int x, int y) {
 		return m_buffer.GetColorBufferValue(x, y);
 	}
@@ -97,22 +89,11 @@ public :
 		return false;
 	}
 	Object * GetObject(string name );  
-	void GetVertsWorldSpace(Object* obj, MatrixStore& store,  bool normalConvert = false) { 
+	void GetVertsWorldSpace(Object* obj, MatrixStore& store) { 
 		GenerateTransformMatrix(obj->position , &store.loacl2WorldM); 
 		for (int i = 0; i < obj->prefab->vertCount; i++) {
 			matrixdot(obj->verts[i].position, obj->prefab->v[i], &store.local2WorldR); 
-			matrixdot(obj->verts[i].position, obj->verts[i].position,&store.loacl2WorldM);
-
-		//	matrixdot(obj->verts[i].normal, obj->verts[i].normal, &store.local2WorldR); 
-
-			if (i % 3 == 0) {
-				obj->verts[i].color->x = 1; 
-			}
-			else if (i % 3 == 1) {
-				obj->verts[i].color->y = 1; 
-			}
-			else
-				obj->verts[i].color->z = 1; 
+			matrixdot(obj->verts[i].position, obj->verts[i].position,&store.loacl2WorldM);  
 		}
 	}  
 	void GetAffineWeight(VECTOR4* A , VECTOR4 * B ,  VECTOR4* C,  float Px ,float Py , float pw, VECTOR3* res) {
@@ -125,16 +106,10 @@ public :
 		x3 = C->x /C->w;
 		y3 = C->y /C->w;
 		Px = Px  /pw;
-		Py = Py /pw;  
-		
-		
-		c = ((y1 - y2) * Px + (x2 - x1) * Py + x1 * y2 - x2 * y1) /(float) ((y1 - y2) * x3 + (x2 - x1) * y3 + x1 * y2 - x2 * y1)  ; 
-		b = ((y1 - y3) * Px + (x3 - x1) * Py + x1 * y3 - x3 * y1) /(float) ((y1 - y3) * x2 + (x3 - x1) * y2 + x1 * y3 - x3 * y1) ; 
-		a = 1 - b - c;   
-/*
-		a =((y2 - y3) * (Px - x3) + (x3 - x2) * (Py - y3)) / ((y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3));
-		b =((y3 - y3) * (Px - x3) * (x1 - x3) * (Py - y3)) / ((y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3));
-		c = 1 - a - b*/;
+		Py = Py /pw;   
+		c = ((y1 - y2) * Px + (x2 - x1) * Py + x1 * y2 - x2 * y1) /  ((y1 - y2) * x3 + (x2 - x1) * y3 + x1 * y2 - x2 * y1)  ; 
+		b = ((y1 - y3) * Px + (x3 - x1) * Py + x1 * y3 - x3 * y1) /  ((y1 - y3) * x2 + (x3 - x1) * y2 + x1 * y3 - x3 * y1) ; 
+		a = 1 - b - c;    
 		res->x = a;
 		res->y = b;
 		res->z = c;  
@@ -148,8 +123,8 @@ public :
 		y2 = B->y ;
 		x3 = C->x  ;
 		y3 = C->y  ; 
-		c = ((y1 - y2) * Px + (x2 - x1) * Py + x1 * y2 - x2 * y1) / (float)((y1 - y2) * x3 + (x2 - x1) * y3 + x1 * y2 - x2 * y1);
-		b = ((y1 - y3) * Px + (x3 - x1) * Py + x1 * y3 - x3 * y1) / (float)((y1 - y3) * x2 + (x3 - x1) * y2 + x1 * y3 - x3 * y1);
+		c = ((y1 - y2) * Px + (x2 - x1) * Py + x1 * y2 - x2 * y1) /  ((y1 - y2) * x3 + (x2 - x1) * y3 + x1 * y2 - x2 * y1);
+		b = ((y1 - y3) * Px + (x3 - x1) * Py + x1 * y3 - x3 * y1) /  ((y1 - y3) * x2 + (x3 - x1) * y2 + x1 * y3 - x3 * y1);
 		a = 1 - b - c;
 		return A->w * a + B->w * b + C->w * c;
 	}
@@ -163,8 +138,8 @@ public :
 		x3 = C->x;
 		y3 = C->y; 
 
-		c = ((y1 - y2) * Px + (x2 - x1) * Py + x1 * y2 - x2 * y1) / (float)((y1 - y2) * x3 + (x2 - x1) * y3 + x1 * y2 - x2 * y1);
-		b = ((y1 - y3) * Px + (x3 - x1) * Py + x1 * y3 - x3 * y1) / (float)((y1 - y3) * x2 + (x3 - x1) * y2 + x1 * y3 - x3 * y1);
+		c = ((y1 - y2) * Px + (x2 - x1) * Py + x1 * y2 - x2 * y1) / ((y1 - y2) * x3 + (x2 - x1) * y3 + x1 * y2 - x2 * y1);
+		b = ((y1 - y3) * Px + (x3 - x1) * Py + x1 * y3 - x3 * y1) / ((y1 - y3) * x2 + (x3 - x1) * y2 + x1 * y3 - x3 * y1);
 		a = 1 - b - c;
 		if (a < 0 || a> 1 || b < 0 || b > 1 || c< 0 || c > 1) {
 			return -99;
@@ -183,8 +158,9 @@ public :
 		int order = GetOrder(info, A);
 		VECTOR4 viewDir;
 		VECTOR::minusV4(&viewDir, A.position, m_cam.position);
-		normalizedVector3(&viewDir, &viewDir);
 		normalizedVector3(A.normal, A.normal);
+/*
+		normalizedVector3(&viewDir, &viewDir);
 		float amb = dot3x3(&lightDir, A.normal);
 		VECTOR4 r;
 		VECTOR::dot(&r,A.normal, 2 *amb); 
@@ -196,7 +172,7 @@ public :
 		amb = amb * 0.5 + 0.5; 
 		amb *= m_lightDiffuse;
 		info.lightIntense [order] = (sth + amb)	 * m_lightIntense;  
-
+*/
 		copy (A.normal, &(info.normal[order] ));
 		copy(A.position, &(info.pos[order]));
 
@@ -278,6 +254,8 @@ public :
 		int ordera = GetOrder(info, *a), orderb = GetOrder(info, *b), orderc = GetOrder(info, *c);
 		u = a->tv->x * res.x + b->tv->x * res.y + c->tv->x * res.z;
 		v = a->tv->y * res.x + b->tv->y * res.y + c->tv->y * res.z;
+
+
 		VlightAdjust = res.x *info.lightIntense[ordera] + res.y * info.lightIntense[orderb]
 			+ res.z *info.lightIntense[orderc];
 		
@@ -313,28 +291,15 @@ public :
 		amb = amb * 0.5 + 0.5;
 		amb *= m_lightDiffuse;
 		VlightAdjust = (sth + amb) * m_lightIntense;
-		
+
 		outColor->x = 1; outColor->y = 1; outColor->z = 1;
-		
+		if (useTexture)
+			copy(m_BMPManager.GetBMPColor(u, v), outColor); 
 		dot(outColor, outColor, VlightAdjust); 
 
 		m_buffer.WriteToColorBuffer(x, y, outColor);
 		return true;
-	} 
-	void DrawPoint(int x, int y, VShaderInfo& info) {
-		if (!ValidScreamPos(x, y)) {
-			return;
-		}
-		VECTOR4 col(1, 1, 1, 1);
-		float depth = GetZValue(info.A->position, info.B->position, info.C->position, x, y);
-		if (depth < m_buffer.GetZBufferValue(x, y) || depth < 0 ) { 
-			return;
-		}
-		if (FragmentProcessShader(x, y, info.A, info.B, info.C, info, &col)) {
-			m_buffer.WriteToZBuffer(depth, x, y);
-		} 
-	}
-
+	}  
 	void ShowShadowMap() {
 		VECTOR4 col;
 		float dis = m_directionLight.farZ - m_directionLight.nearZ;
@@ -344,33 +309,25 @@ public :
 				col.y = col.x; col.z = col.x;
 				m_buffer.WriteToColorBuffer(i, j,&col);
 			} 
-		}
-
-
+		} 
 	}
 	void RasterLineShadow(DrawTrianglePoint a, DrawTrianglePoint b, VShaderInfo info) { 
-		float xl = a.x, xr = b.x;
-		int errorPoint = 0, normalPoint = 0;
+		float xl = a.x, xr = b.x; 
 		if (xl == xr) { 
 			return;
-		}
-		VECTOR4 col(1, 1, 1, 0);
-		bool lr = true;
+		}  
 		if (xl > xr) {
 			swap(xl, xr);
-		}
-		float length = m_directionLight.farZ - m_directionLight.nearZ;
+		} 
 		for (int i = 0; xl + i <= xr; i++) {
 			if (!ValidScreamPos(xl + i, a.y)) {
 				continue;
-			}
-			VECTOR4 col(1, 1, 1, 0);
+			} 
 			float depth;
 			if (a.FROM == b.FROM)
 				depth = GetZValue(a.FROM->position, a.TO->position, b.TO->position, xl + i, a.y);
 			else
-				depth = GetZValue(a.FROM->position, a.TO->position, b.FROM->position, xl + i, a.y);
-
+				depth = GetZValue(a.FROM->position, a.TO->position, b.FROM->position, xl + i, a.y); 
 			depth = 1 / depth; 
 			if ( depth < m_directionLight.ReadShadowMap(xl + i, a.y) || depth < 0) {
 				continue;
@@ -378,219 +335,93 @@ public :
 			m_directionLight.WriteToShadowMap(depth,xl + i, a.y); 
 		} 
 	}
-	void RasterLine(DrawTrianglePoint a,DrawTrianglePoint b,VShaderInfo info) { 
-	 
-		float xl = a.x , xr = b.x  ;  
-		int errorPoint = 0, normalPoint = 0;
+	void RasterLine(DrawTrianglePoint a,DrawTrianglePoint b,VShaderInfo info) {  
+		float xl = a.x , xr = b.x  ;   
 		if (xl == xr) { 
 			return;
 		}
-		VECTOR4 col(1, 1, 1, 0); 
-		bool lr = true;
+		VECTOR4 col(1, 1, 1, 0);  
 		if (xl > xr) {
 			swap(xl, xr);  
 		}    
 
-		xl = xl - 2; xr = xr + 2;
+		xl = xl - 1; xr = xr + 1;
 
 		for (int i = 0; xl + i <= xr ; i++) {
 			if (!ValidScreamPos(xl + i, a.y)) {  
 				continue;
-			}
-			VECTOR4 col(1, 1, 1, 0);
-			float depth;
-			if(a.FROM == b.FROM)
-				depth = GetZValue(a.FROM->position, a.TO->position, b.TO->position, xl + i, a.y);
-			else
-				depth = GetZValue(a.FROM->position, a.TO->position, b.FROM->position, xl + i, a.y); 
-
-
-			depth = 1 / depth;
-			if (depth < m_buffer.GetZBufferValue(xl + i, a.y) || depth < 0) {
-				continue;
 			} 
-			float u, v, VlightAdjust;
-			VECTOR3 res;
-			if (a.FROM == b.FROM) {
-				float pw = GetWValue(a.FROM->position, a.TO->position, b.TO->position, xl + i, a.y);
-				GetAffineWeight(a.FROM->position, a.TO->position, b.TO->position, xl + i, a.y, pw, &res);
-				if (res.x < 0 || res.x > 1 || res.y < 0 || res.y > 1 || res.z < 0 || res.z > 1)
-					continue;
+			float depth;
+			depth = GetWValue(info.A->position, info.B->position,info.C->position, xl + i, a.y);
+			depth = 1 / depth;
+			if (depth > m_buffer.GetZBufferValue(xl + i, a.y) || depth < 0) {
+				continue;
+			}   
+			if (FragmentProcessShader(xl + i, a.y, info.A, info.B, info.C, info, &col)) {
 
-				int orderAFrom = GetOrder(info, *a.FROM), orderATO = GetOrder(info, *a.TO), orderBTO = GetOrder(info, *b.TO);
-				u = a.FROM->tv->x * res.x + a.TO->tv->x * res.y + b.TO->tv->x * res.z;
-				v = a.FROM->tv->y * res.x + a.TO->tv->y * res.y + b.TO->tv->y * res.z;
-				VlightAdjust = res.x *info.lightIntense[orderAFrom] + res.y * info.lightIntense[orderATO]
-					+ res.z *info.lightIntense[orderBTO];
-				 
-				VECTOR4 fragPosA, fragPosB, fragPosC;
-				dot(&fragPosA, &info.pos[orderAFrom], res.x);
-				dot(&fragPosB, &info.pos[orderATO], res.y);
-				dot(&fragPosC, &info.pos[orderBTO], res.z);
-				add(&fragPosA, &fragPosA, &fragPosB);
-				add(&fragPosA, &fragPosA, &fragPosC);
-
-
-				VECTOR4 normalA, normalB, normlaC;
-				dot(&normalA, &info.normal[orderAFrom], res.x);
-				dot(&normalB, &info.normal[orderATO], res.y);
-				dot(&normlaC, &info.normal[orderBTO], res.z);
-				add(&normalA, &normalA, &normalB);
-				add(&normalA, &normalA, &normlaC);
-
-				VECTOR4 viewDir;
-				minusV4(&viewDir, m_cam.position, &fragPosA);
-
-				normalizedVector3(&viewDir, &viewDir);
-				normalizedVector3(&normalA, &normalA);
-
-
-				float amb = dot3x3(&lightDir, &normalA);
-				VECTOR4 r;
-				VECTOR::dot(&r, &normalA, 2 * amb);
-				minusV3(&r, &r, &lightDir);
-				normalizedVector3(&r, &r);
-				float  sth = dot3x3(&r, &viewDir);
-				sth = sth *0.5 + 0.5;
-				sth = sth * sth *(sth * 0.25);
-				amb = amb * 0.5 + 0.5;
-				amb *= m_lightDiffuse;
-				VlightAdjust = (sth + amb) * m_lightIntense; 
-
+				m_buffer.WriteToColorBuffer(xl + i, a.y, &col);
+				m_buffer.WriteToZBuffer(depth, xl + i, a.y);
 			}
-			else {
-
-				float pw = GetWValue(a.FROM->position, a.TO->position, b.FROM->position, xl + i, a.y);
-				GetAffineWeight(a.FROM->position, a.TO->position, b.FROM->position, xl + i, a.y, pw, &res);
-				if (res.x < 0 || res.x > 1 || res.y < 0 || res.y > 1 || res.z < 0 || res.z > 1)
-					continue;
-				int orderAFrom = GetOrder(info, *a.FROM), orderATO = GetOrder(info, *a.TO), orderBFrom = GetOrder(info, *b.FROM);
-				u = a.FROM->tv->x * res.x + a.TO->tv->x * res.y + b.FROM->tv->x * res.z;
-				v = a.FROM->tv->y * res.x + a.TO->tv->y * res.y + b.FROM->tv->y * res.z;
-				VlightAdjust = res.x *info.lightIntense[orderAFrom] + res.y * info.lightIntense[orderATO]
-					+ res.z *info.lightIntense[orderBFrom];
-
-				VECTOR4 fragPosA, fragPosB, fragPosC;
-				dot(&fragPosA, &info.pos[orderAFrom], res.x);
-				dot(&fragPosB, &info.pos[orderATO], res.y);
-				dot(&fragPosC, &info.pos[orderBFrom], res.z);
-				add(&fragPosA, &fragPosA, &fragPosB);
-				add(&fragPosA, &fragPosA, &fragPosC);
-
-
-				VECTOR4 normalA, normalB, normlaC;
-				dot(&normalA, &info.normal[orderAFrom], res.x);
-				dot(&normalB, &info.normal[orderATO], res.y);
-				dot(&normlaC, &info.normal[orderBFrom], res.z);
-				add(&normalA, &normalA, &normalB);
-				add(&normalA, &normalA, &normlaC);
-
-				VECTOR4 viewDir;
-				minusV4(&viewDir, m_cam.position, &fragPosA);
-
-				normalizedVector3(&viewDir, &viewDir);
-				normalizedVector3(&normalA, &normalA);
-
-
-				float amb = dot3x3(&lightDir, &normalA);
-				VECTOR4 r;
-				VECTOR::dot(&r, &normalA, 2 * amb);
-				minusV3(&r, &r, &lightDir);
-				normalizedVector3(&r, &r);
-				float  sth = dot3x3(&r, &viewDir);
-				sth = sth *0.5 + 0.5;
-				sth = sth * sth *(sth * 0.25);
-				amb = amb * 0.5 + 0.5;
-				amb *= m_lightDiffuse;
-				VlightAdjust = (sth + amb) * m_lightIntense;
-			}
-			normalPoint++;
-			if(useTexture)
-				copy(m_BMPManager.GetBMPColor(u, v), &col);
-			if (useVShader) { 
-				dot(&col, &col, VlightAdjust);
-			}
-		//	col.x = 0; col.y = 0; col.z = 0;
-			m_buffer.WriteToColorBuffer(xl + i, a.y,&col);
-
-
-			m_buffer.WriteToZBuffer(depth, xl + i, a.y);
-		}
-	//	cout << errorPoint << "  " << " normal point " << normalPoint << endl;
-	}  
-	void DrawTriangle(int x1, int y1, int x2, int y2, int x3, int y3, int x, int y) {
-		VECTOR4 col;
-		float a, b ,c ;
-		c = ((y1 - y2) * x + (x2 - x1) * y + x1 * y2 - x2 * y1) / (float)((y1 - y2) * x3 + (x2 - x1) * y3 + x1 * y2 - x2 * y1);
-		b = ((y1 - y3) * x + (x3 - x1) * y + x1 * y3 - x3 * y1) / (float)((y1 - y3) * x2 + (x3 - x1) * y2 + x1 * y3 - x3 * y1);
-		a = 1 - b - c;
-		
-		if (a < 0 || a > 1 || b < 0 || b > 1 || c < 0 || c > 1)
-			return;
-		col.x = a; col.y = b; col.z = c;
-		m_buffer.WriteToColorBuffer(x,y,&col);
-	}
+		} 
+	}   
 	void RasterizationTriangle(VShaderInfo& info) {
 		VERT* A = info.A, *B = info.B, *C = info.C;
 		int yDir = 1;
-		if (B->uv->y < A->uv->y) {
+		if (B->position->y < A->position->y) {
 			VERT* temp = A;A = B; B = temp;
 		}
-		if (C->uv->y < A->uv->y) {
+		if (C->position->y < A->position->y) {
 			VERT* temp = A; A = C; C = temp; 
 		}
-		if (C->uv->y < B->uv->y) {
+		if (C->position->y < B->position->y) {
 			VERT* temp = B; B =C; C = temp;
 		}
-		if ((int)B->uv->y == (int)A->uv->y) {
+		if ((int)B->position->y == (int)A->position->y) {
 			VERT* temp = A; A = C;C = temp; 
 		} 
-		if (A->uv->y > B->uv->y)
+		if (A->position->y > B->position->y)
 			yDir = -1;  
 
-		float disAB = distance2D(*(A->uv), *(B->uv));
+		float disAB = distance2D(*(A->position), *(B->position));
 		
-		float disAC = distance2D(*(A->uv), *(C->uv));
+		float disAC = distance2D(*(A->position), *(C->position));
 
 
 		VECTOR2 dir;
-		dir.x = B->uv->x - A->uv->x;
-		dir.y = B->uv->y - A->uv->y;
+		dir.x = B->position->x - A->position->x;
+		dir.y = B->position->y - A->position->y;
 		normalized(dir); 
 		DrawTrianglePoint ab; ab.dir.x = dir.x, ab.dir.y = dir.y;
-		ab.x = A->uv->x; ab.y = A->uv->y;
-		ab.tarX = B->uv->x; ab.tarY = B->uv->y;
+		ab.x = A->position->x; ab.y = A->position->y; 
 		ab.dis = disAB; ab.count = 0; 
 
 
-		dir.x = C->uv->x - A->uv->x;
-		dir.y = C->uv->y - A->uv->y;
+		dir.x = C->position->x - A->position->x;
+		dir.y = C->position->y - A->position->y;
 		normalized(dir); ab.FROM = A; ab.TO = B;
 		DrawTrianglePoint ac; ac.dir.x = dir.x, ac.dir.y = dir.y;
-		ac.x = A->uv->x; ac.y = A->uv->y;
-		ac.tarX = C->uv->x; ac.tarY = C->uv->y;
+		ac.x = A->position->x; ac.y = A->position->y; 
 		ac.dis = disAC; ac.count = 0;
 		ac.FROM = A; ac.TO = C; 
 
 
 		DrawTrianglePoint bc; 
 
-		float disbc = distance2D(*(B->uv), *(C->uv));
+		float disbc = distance2D(* (B->position), *(C->position));
 		bc.count = 0; bc.dis = disbc;
-		bc.x = C->uv->x; bc.y = C->uv->y;
-		dir.x = B->uv->x - C->uv->x; dir.y = B->uv->y - C->uv->y;
+		bc.x = C->position->x; bc.y = C->position->y;
+		dir.x = B->position->x - C->position->x; dir.y = B->position->y - C->position->y;
 		normalized(dir); bc.dir.x = dir.x; bc.dir.y = dir.y;
 		bc.FROM = C; bc.TO = B; 
 
-		int y = A->uv->y;
-
-
-
-		if ((int) A->uv->y == (int)B->uv->y && (int)A->uv->y == (int)C->uv->y)
+		int y = A->position->y; 
+		if ((int) A->position->y == (int)B->position->y && (int)A->position->y == (int)C->position->y)
 		{ 
 			return;
 		}
 
+		if (ab.count < 0 || ac.count <0) 
+			return;
 		if(!isShadowMapGen)
 			DrawLine(ab, ac,bc, info); 
 
@@ -607,31 +438,26 @@ public :
 				//DrawPoint(ac, info);  
 			} 
 			if (ab.count >= disAB || ac.count >= disAC)
-				break;
-			if ((int)ab.y !=(int) ac.y)
-				cout << "error occur in raster" << endl;
+				break; 
 			if(!isShadowMapGen)
 				RasterLine(ab, ac, info); 
 			else
-				RasterLineShadow(ab, ac, info);
-
-			
+				RasterLineShadow(ab, ac, info); 
 			y += yDir;
 		}
-
-		if (B->uv->y == C->uv->y) {
-			return;
-		}
-
 		if (ab.count >= disAB && ac.count >= disAC)
 			return;
 		if (ab.count >= disAB) { 
-			bc.x = B->uv->x; bc.y = B->uv->y;
-			dir.x = C->uv->x - B->uv->x; dir.y = C->uv->y - B->uv->y;
+			bc.x = B->position->x; bc.y = B->position->y;
+			dir.x = C->position->x - B->position->x; dir.y = C->position->y - B->position->y;
 			normalized(dir); bc.dir.x = dir.x; bc.dir.y = dir.y;
 			bc.FROM = B; bc.TO = C;
 			ab.count = ac.count;	Swap(ab, ac); disAB = disAC;
 		}  
+
+		if (B->position->y == C->position->y) {
+			return;
+		}
 
 		for (; ab.count < disAB && bc.count < disbc;) {
 			if(!isShadowMapGen)
@@ -640,15 +466,13 @@ public :
 				RasterLineShadow(ab, bc, info);
 			while ((int)ab.y != y)
 			{
-				ab.count++;	ab.Move();
-				//DrawPoint(ab, info);
+				ab.count++;	ab.Move(); 
 				if (ab.count >= disAB)
 					break;
 			}
 			while ((int)bc.y != y)
 			{
-				bc.count++;  bc.Move();
-				//DrawPoint(bc, info);
+				bc.count++;  bc.Move(); 
 				if (bc.count >= disAB)
 					break;
 			}
@@ -673,37 +497,33 @@ void MultiFaceDraw(Object & object , int from ,int to,VECTOR4* viewDir,PipelineC
 	
 	VECTOR3 ab, bc, normal;
 	int a, b, c; 
-	VERT* A, *B, *C;
-	VECTOR2 va, vb, vc;
+	VERT* A, *B, *C; 
 	for (int i = from; i < to; i++) { 
 		a = object.prefab->f[i]->a.x - 1;
 		b = object.prefab->f[i]->b.x - 1;
 		c = object.prefab->f[i]->c.x - 1;
 		A = &(object.verts[a]); B = &(object.verts[b]); C = &(object.verts[c]);
-		ab.x = B->uv->x - A->uv->x;
-		ab.y = B->uv->y - A->uv->y;
-		ab.z = B->zValue - A->zValue;
-		bc.x = C->uv->x - B->uv->x;
-		bc.y = C->uv->y - B->uv->y;
-		bc.z = C->zValue - B->zValue;
+		ab.x = B->position->x - A->position->x;
+		ab.y = B->position->y - A->position->y;
+		ab.z = B->position->z - A->position->z;
+		bc.x = C->position->x - B->position->x;
+		bc.y = C->position->y - B->position->y;
+		bc.z = C->position->z - B->position->z;
 		crossV3(normal, ab, bc);
 		normalized(normal);
 		viewDir->x = 0; viewDir->y = 0; viewDir->z = -1;
 		if (dotV3(normal, *viewDir) < 0 && !pipeline->isShadowMapGen)
 			continue;
-		if (!pipeline->ValidScreamPos(A->uv->x, A->uv->y)) {
-			if (!pipeline->ValidScreamPos(B->uv->x, B->uv->y)) {
-				if (!pipeline->ValidScreamPos(C->uv->x, C->uv->y)) {
+		if (!pipeline->ValidScreamPos(A->position->x, A->position->y)) {
+			if (!pipeline->ValidScreamPos(B->position->x, B->position->y)) {
+				if (!pipeline->ValidScreamPos(C->position->x, C->position->y)) {
 					continue;
 				}
 			} 
 		}
 		if (A->position->z < 0 && B->position->z < 0 && C->position->z < 0) {
 			continue;
-		}
-	//	A->color->x = (float)i / 8; A->color->y = (float)i / 8; A->color->z = (float)i / 8;
-	//	B->color->x = (float)i / 8; B->color->y = (float)i / 8; B->color->z = (float)i / 8;
-	//	C->color->x = (float)i / 8; C->color->y = (float)i / 8; C->color->z = (float)i / 8;
+		} 
 		vInfo[i].A = A, vInfo[i].B = B, vInfo[i].C = C;
 		pipeline->RasterizationTriangle(vInfo[i]);
 	} 
@@ -713,15 +533,10 @@ void MultiFaceDraw(Object & object , int from ,int to,VECTOR4* viewDir,PipelineC
 void PipelineController::RenderAll() {
 	m_buffer.ClearColBuffer(m_penCol); 
 	isShadowMapGen = true;
-	for (int i = 0; i < targetLength; i++) {
-		if (m_renderTargets[i]->prefab->name == "cube")
-			useTexture = true;
-		else
-			useTexture = false;
+	for (int i = 0; i < targetLength; i++) { 
 		RenderShadowMap(*m_renderTargets[i]);
 	}
-	isShadowMapGen = false; 
-
+	isShadowMapGen = false;  
 
 	for (int i = 0; i < targetLength; i++) {
 		if (m_renderTargets[i]->prefab->name == "cube")
@@ -730,13 +545,8 @@ void PipelineController::RenderAll() {
 			useTexture = false;
 		RenderTarget(*m_renderTargets[i]);
 	}
-	 
-	for (int i = 0; i < 250; i++) {
-		for (int j = 0; j < 2250; j++) {
-			DrawTriangle(150, 30, 0, 0, 30, 180, i, j);
-		}
-	}
-	ShowShadowMap();
+	  
+	//ShowShadowMap();
 	m_buffer.SwapBuffer();
 	m_directionLight.ClearShadowMap();
 }
@@ -757,13 +567,12 @@ void PipelineController::AddRenderTarget(Object* ob) {
 	m_renderTargets[targetLength++] = ob;
 }
 PipelineController::PipelineController() {
-	VECTOR4 col(0.953, 0.447, 0.8156, 1);
+	VECTOR4 col(51/255.0, 230/255.0,204/255.0, 1);
 	copy(&col, &m_penCol);
 	lightDir.x = 0; lightDir.y = 0; lightDir.z = -1; lightDir.w = 0;
 	normalizedVector3(&lightDir, &lightDir);
 	m_lightIntense = 1.5;
-	m_lightDiffuse = 0.6;
-	m_threads = 5;
+	m_lightDiffuse = 0.6; 
 }
 
 bool PipelineController::RemoveRenderTarget(Object ob) {
@@ -771,8 +580,7 @@ bool PipelineController::RemoveRenderTarget(Object ob) {
 }
 void PipelineController::RenderShadowMap(Object& object) {
 	VECTOR4 viewDir(0, 0, 0, 0);
-	int a, b, c;
-	int na, nb, nc;
+	int a, b, c; 
 	VECTOR2 va, vb, vc;
 	GenerateRotateMatrix(*object.rotation, &m_directionLight.store.local2WorldR);
 	GenerateRotateMatrix(m_directionLight.rotation, &m_directionLight.store.W2CamR);
@@ -781,42 +589,19 @@ void PipelineController::RenderShadowMap(Object& object) {
 	for (int i = 0; i < object.prefab->faceCount; i++) {
 		a = object.prefab->f[i]->a.x - 1;
 		b = object.prefab->f[i]->b.x - 1;
-		c = object.prefab->f[i]->c.x - 1;
-		na = object.prefab->f[i]->a.z - 1;
-		nb = object.prefab->f[i]->b.z - 1;
-		nc = object.prefab->f[i]->c.z - 1;
+		c = object.prefab->f[i]->c.x - 1; 
 		VERT& AA = object.verts[a], &BB = object.verts[b], &CC = object.verts[c];
-		AA.vertNum = a; BB.vertNum = b; CC.vertNum = c;
-		copy(object.prefab->n[na], AA.normal);
-		copy(object.prefab->n[nb], BB.normal);
-		copy(object.prefab->n[nc], CC.normal); 
+		AA.vertNum = a; BB.vertNum = b; CC.vertNum = c; 
 		vInfo[i].order[0] = AA.vertNum;
 		vInfo[i].order[1] = BB.vertNum;
-		vInfo[i].order[2] = CC.vertNum;
-		VertexShader(AA, vInfo[i]);
-		VertexShader(BB, vInfo[i]);
-		VertexShader(CC, vInfo[i]);
+		vInfo[i].order[2] = CC.vertNum; 
 	}  
-	GetVertsWorldSpace(&object, ref(m_directionLight.store), true);
+	GetVertsWorldSpace(&object, ref(m_directionLight.store));
 	m_directionLight.GetLightCoordinateTransformVert(&object);
-	m_directionLight.GenerateOrthoMatrix(m_directionLight.store.C2OthroM);
-	
+	m_directionLight.GenerateOrthoMatrix(m_directionLight.store.C2OthroM); 
 	m_directionLight.GetClipSpaceTransfromVert(&object );
-	VECTOR4 col(0.1, 0.1, 0.1, 1);
-	VECTOR3 ab, bc, normal;
 	minusV3(&viewDir, m_cam.position, object.position);
-	int i = 0;
-	for (; i < object.prefab->faceCount; i++) {
-		VERT* A, *B, *C;
-		a = object.prefab->f[i]->a.x - 1;
-		b = object.prefab->f[i]->b.x - 1;
-		c = object.prefab->f[i]->c.x - 1;
-		A = &(object.verts[a]); B = &(object.verts[b]); C = &(object.verts[c]);
-		a = object.prefab->f[i]->a.y - 1;
-		b = object.prefab->f[i]->b.y - 1;
-		c = object.prefab->f[i]->c.y - 1; 
-	} 
-
+	int i = 0; 
 	int threadCount = 5;
 	int threadMissionCount = object.prefab->faceCount / threadCount;
 	int startCount = 0, endCount = threadMissionCount;
@@ -845,10 +630,9 @@ void PipelineController::RenderTarget(Object &  object) {
 	VECTOR2 va, vb, vc; 
 	GenerateRotateMatrix(*object.rotation,  &store.local2WorldR);
 	GenerateRotateMatrix(m_cam.rotation, &store.W2CamR);
-	GenerateTransformMatrix(object.position, &store.loacl2WorldM);
-	//cout << "term" << endl;
+	GenerateTransformMatrix(object.position, &store.loacl2WorldM); 
 	VShaderInfo* vInfo = new VShaderInfo[object.prefab->faceCount];
-	GetVertsWorldSpace(&object, ref(store), true);
+	GetVertsWorldSpace(&object, ref(store));
 	for (int i = 0; i < object.prefab->faceCount; i++) { 
 		a = object.prefab->f[i]->a.x - 1;
 		b = object.prefab->f[i]->b.x - 1;
@@ -871,15 +655,13 @@ void PipelineController::RenderTarget(Object &  object) {
 		VertexShader( BB,vInfo[i]);
 		VertexShader( CC,vInfo[i]);
 	}
-	m_cam.GetCamCoordinateTransformVert(&object, store);
-	//GenerateOrthoMatrix(store.C2OthroM);
-	m_cam.GetClipSpaceTransfromVert(&object,store);
-	VECTOR4 col(0.1, 0.1, 0.1, 1);
+	m_cam.GetCamCoordinateTransformVert(&object, store); 
+	m_cam.GetClipSpaceTransfromVert(&object,store); 
 	VECTOR3 ab, bc, normal;
+	VERT* A, *B, *C;
+	int i = 0;
 	minusV3(&viewDir, m_cam.position, object.position);  
-	int i = 0;  
 	for (; i < object.prefab->faceCount; i++) {
-		VERT* A, *B, *C;
 		a = object.prefab->f[i]->a.x - 1;
 		b = object.prefab->f[i]->b.x - 1;
 		c = object.prefab->f[i]->c.x - 1;
@@ -926,11 +708,11 @@ void PipelineController::RenderTarget(Object &  object) {
 	//	copy(object.prefab->t[a], A->tv);
 	//	copy(object.prefab->t[b], B->tv);
 	//	copy(object.prefab->t[c], C->tv);
-	//	ab.x = B->uv->x - A->uv->x;
-	//	ab.y = B->uv->y - A->uv->y;
+	//	ab.x = B->position->x - A->position->x;
+	//	ab.y = B->position->y - A->position->y;
 	//	ab.z = B->zValue - A->zValue;
-	//	bc.x = C->uv->x - B->uv->x;
-	//	bc.y = C->uv->y - B->uv->y;
+	//	bc.x = C->position->x - B->position->x;
+	//	bc.y = C->position->y - B->position->y;
 	//	bc.z = C->zValue - B->zValue;
 	//	crossV3(normal, ab, bc);
 	//	normalized(normal);
@@ -952,11 +734,11 @@ void PipelineController::RenderTarget(Object &  object) {
 	////	copy(object.prefab->t[a], A->tv);
 	////	copy(object.prefab->t[b], B->tv);
 	////	copy(object.prefab->t[c], C->tv);
-	//ab.x = B->uv->x - A->uv->x;
-	//ab.y = B->uv->y - A->uv->y;
+	//ab.x = B->position->x - A->position->x;
+	//ab.y = B->position->y - A->position->y;
 	//ab.z = B->zValue - A->zValue;
-	//bc.x = C->uv->x - B->uv->x;
-	//bc.y = C->uv->y - B->uv->y;
+	//bc.x = C->position->x - B->position->x;
+	//bc.y = C->position->y - B->position->y;
 	//bc.z = C->zValue - B->zValue;
 	//crossV3(normal, ab, bc);
 	//normalized(normal); 

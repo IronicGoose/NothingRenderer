@@ -17,20 +17,50 @@ static PipelineController pipeline;
 ObjectHolder * holder; 
  
 
-void RenderACube() {
+void StartRender() {
 //	eye.GenerateCenterPoint();  
 	VECTOR4  pos(0, 0, 0, 1);
 	Object *object = new Object(); 
 	pipeline.CreateObject("cube001", "cube", &pos); 
-	pos.y = 4;
-	//pipeline.CreateObject("sphere", "sphere", &pos);
+	pos.y = 0;
+	pipeline.CreateObject("sphere", "sphere", &pos);
 	pipeline.CreateObject("floor", "cube", &pos);
 	pipeline.LoadPicture();
-	pipeline.RenderAll(); 
-//	pipeline.RenderTarget(*object);
-	
+	pipeline.RenderAll();  
 }  
+float camRot = 0;
+float camX = 0, camY = 0, camZ = 0;
+void GlKeyCall(unsigned char key, int xmouse, int ymouse) { 
+	switch (key) {
+	case 'e':
+		camRot += 3;
+		pipeline.m_cam.SetRotation(1, 0, 0, camRot); 
+		break;
 
+	case 'q':
+		camRot -= 3;
+		pipeline.m_cam.SetRotation(1, 0, 0, camRot); 
+		break;
+	case 'w':
+		camY += 0.3;
+		pipeline.m_cam.SetPosition(camX, camY, pipeline.m_cam.position->z);
+		break;
+
+	case 'a':
+		camX -= 0.3;
+		pipeline.m_cam.SetPosition(camX, camY, pipeline.m_cam.position->z);
+		break;
+	case 's':
+		camY -= 0.3;
+		pipeline.m_cam.SetPosition(camX, camY, pipeline.m_cam.position->z);
+		break;
+
+	case 'd':
+		camX += 0.3;
+		pipeline.m_cam.SetPosition(camX, camY, pipeline.m_cam.position->z);
+		break;
+	} 
+}
 float  t = 0;
 void Mainloop() {
 	t += 5;
@@ -38,11 +68,10 @@ void Mainloop() {
 	Object* floor = pipeline.GetObject("floor");
 	Object* sphere = pipeline.GetObject("sphere");
 	floor->SetScale(1, 0.5, 1);
-//	sphere->SetRotation(0,1 ,0,t); 
-//	sphere->SetPosition(0, 0, -2,1);
+	sphere->SetRotation(0,1 ,0,t); 
+	sphere->SetPosition(0, 0, -2,1); 
 	floor->SetPosition(0, 0, 5, 1);
 	//cube->SetRotation(0, 1, 0,  t);
-	pipeline.m_cam.SetRotation(1, 0, 0, 0); 
 	cube->SetPosition(sin(t* 3.141592657/180) *1, cos(t* 3.141592657 / 180) * 1, 3,  t);
 	VECTOR4 col;
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -74,8 +103,7 @@ void RenderWindow()
 		}
 	}
 	glEnd();
-	glFlush();
-		 
+	glFlush(); 
 } 
 int main(int argc, char ** argv)
 {
@@ -95,8 +123,9 @@ int main(int argc, char ** argv)
 	glutDisplayFunc(RenderWindow);  
 	pipeline.CreateBuffer(width, height);
 	holder = pipeline.GetObjectHolder();
-	RenderACube(); 
+	StartRender(); 
 	glutIdleFunc(Mainloop);
+	glutKeyboardFunc(GlKeyCall);
 	glutMainLoop();
 	return 0; 
 }

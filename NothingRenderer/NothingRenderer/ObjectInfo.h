@@ -13,9 +13,7 @@ struct FACEINFO {
 class  VERT {
 public:
 	int vertNum;
-	VECTOR4 * position;
-	VECTOR2* uv;
-	float zValue;
+	VECTOR4 * position; 
 	VECTOR4 * normal;
 	VECTOR4 * color;
 	VECTOR2* tv;
@@ -23,8 +21,7 @@ public:
 	VERT::VERT() {
 		position = new VECTOR4();
 		normal = new VECTOR4();
-		color = new VECTOR4();
-		uv = new VECTOR2();
+		color = new VECTOR4(); 
 		tv = new VECTOR2();
 		color->x = 0; color->y = 0; color->z = 0; color->w = 1;
 		normal->w = 0;

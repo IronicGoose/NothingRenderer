@@ -44,10 +44,11 @@ namespace VECTOR {
 		VECTOR3(){}
 	};
 	void crossV3(VECTOR3& res, VECTOR3& A,VECTOR3 & B) {
-		res.x = A.y * B.z - A.z * B.y;
-		res.y = A.z * B.x - A.x * B.z;
-		res.z = A.x * B.y - A.y * B.x;
-	}
+		float x = A.x, y = A.y, z = A.z;
+		res.x =x * B.z -z * B.y;
+		res.y =z* B.x - x * B.z;
+		res.z = x* B.y - y* B.x;
+	} 
 	float  dotV3(VECTOR3& A, VECTOR3 &B) {
 		return A.x * B.x + A.y * B.y + A.z * B.z;
 	}
@@ -72,10 +73,7 @@ namespace VECTOR {
 	}
 	float distance(VECTOR2* a , VECTOR2* b) {
 		return sqrt((a->x - b->x) * (a->x - b->x) + (a->y - b->y)*(a->y - b->y));
-	}
-	float distance2D(VECTOR4* a , VECTOR4* b) {
-		return sqrt((a->x - b->x) * (a->x - b->x) + (a->y - b->y)*(a->y - b->y));
-	}
+	} 
 	float sqdistance(VECTOR2* a, VECTOR2* b) {
 		return (a->x - b->x) * (a->x - b->x) + (a->y - b->y)*(a->y - b->y);
 	}
@@ -89,12 +87,19 @@ namespace VECTOR {
 	float distance2D(VECTOR2& a, VECTOR2& b) {
 		return sqrt( (a.x - b.x) * (a.x - b.x) + (a.y - b.y)*(a.y - b.y) );
 	}
+	float distance2D(VECTOR4& a, VECTOR4& b) {
+		return sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y)*(a.y - b.y));
+	}
 	float distance2D(VECTOR2I& a, VECTOR2I& b) {
 		return sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y)*(a.y - b.y));
 	}
 	float dot3x3(VECTOR4* a, VECTOR4* b )  { 
 		
 		return a->x *b->x + a->y * b->y + a->z * b->z ;
+	}
+	float dot3x3(VECTOR3* a, VECTOR3* b) {
+
+		return a->x *b->x + a->y * b->y + a->z * b->z;
 	}
 	float dot4x4(VECTOR4* a, VECTOR4* b) {
 
@@ -147,6 +152,15 @@ namespace VECTOR {
 
 	}
 	VECTOR4* normalizedVector3(VECTOR4*res, VECTOR4* vec) {
+		float abs = dot3x3(vec, vec);
+		abs = sqrt(abs);
+		abs = 1 / abs;
+		res->x = vec->x * abs;
+		res->y = vec->y * abs;
+		res->z = vec->z * abs;
+		return res;
+	}
+	VECTOR3* normalizedVector3(VECTOR3*res, VECTOR3* vec) {
 		float abs = dot3x3(vec, vec);
 		abs = sqrt(abs);
 		abs = 1 / abs;
@@ -217,10 +231,7 @@ namespace MATRIX {
 		ma->val[0][0] = scale.x;
 	}
 	void GenerateRotateMatrix(VECTOR4& ax, MATRIX4x4* ma) {
-		normalizedVector4(&ax);
-
-
-
+		normalizedVector4(&ax); 
 		ma->val[0][0] = 1 - 2 * (ax.y * ax.y + ax.z * ax.z);
 		ma->val[1][0] = 2 * (ax.x * ax.y + ax.z * ax.w);
 		ma->val[2][0] = 2 * (ax.x * ax.z - ax.y * ax.w);
@@ -230,21 +241,7 @@ namespace MATRIX {
 		ma->val[0][2] = 2 * (ax.x * ax.z + ax.y * ax.w);
 		ma->val[1][2] = 2 * (ax.y * ax.z - ax.x * ax.w);
 		ma->val[2][2] = 1 - 2 * (ax.x * ax.x + ax.y * ax.y);
-		ma->val[3][3] = 1; 
-
-
-
-		/*
-		ma->val[0][0] = c + ax->x * ax->x * (1 - c);
-		ma->val[0][1] =ax->x * ax->y *(1 - c + ax->z * s);
-		ma->val[0][2] = ax->x * ax->z *(1 - c) - ax->y * s;
-		ma->val[1][0] = ax->x * ax->y * (1 - c) - ax->z * s;
-		ma->val[1][1] = c + ax->y * ax->y * (1 - c);
-		ma->val[1][2] = ax->y * ax->z  * (1 - c) + ax->x  * s;
-		ma->val[2][0] = ax->x * ax->z *(1 - c) + ax->y * s;
-		ma->val[2][1] = ax->y *ax->z *(1 - c) - ax->x *s;
-		ma->val[2][2] = c + ax->z * ax->z *(1 - c); */
-
+		ma->val[3][3] = 1;  
 	} 
 	/*
 	void GenerateRotateMatrix(VECTOR4& a,  MATRIX4x4* ma) { 

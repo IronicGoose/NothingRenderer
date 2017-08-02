@@ -55,7 +55,7 @@ public:
 		GenerateCamMatrix(position, &store.W2CamM);
 		for (int i = 0; i < vs->vertCount; i++) {
 			matrixdot(vs->verts[i].position, vs->verts[i].position, &store.W2CamM);
-			matrixdot(vs->verts[i].position, vs->verts[i].position, &store.W2CamR);
+			//matrixdot(vs->verts[i].position, vs->verts[i].position, &store.W2CamR);
 			matrixdot(vs->verts[i].normal, vs->verts[i].normal, &store.W2CamR);
 		}
 	}
@@ -73,13 +73,12 @@ public:
 		float halfw = width / 2, halfh = height / 2;
 		for (int i = 0; i < vs->vertCount; i++) {
 			matrixdot(vs->verts[i].position, vs->verts[i].position, &store.C2OthroM);
-			vs->verts[i].uv->x = halfw* (1 + vs->verts[i].position->x / vs->verts[i].position->w);
-			vs->verts[i].uv->y = halfh* (1 + vs->verts[i].position->y / vs->verts[i].position->w);
+			vs->verts[i].position->x = halfw* (1 + vs->verts[i].position->x / vs->verts[i].position->w);
+			vs->verts[i].position->y = halfh* (1 + vs->verts[i].position->y / vs->verts[i].position->w);
 			vs->verts[i].position->x = (halfw* (1 + vs->verts[i].position->x / vs->verts[i].position->w));
 			vs->verts[i].position->y = (halfh* (1 + vs->verts[i].position->y / vs->verts[i].position->w));
 			vs->verts[i].position->z = vs->verts[i].position->w;
-			vs->verts[i].position->w = 1 / vs->verts[i].position->w;
-			vs->verts[i].zValue = vs->verts[i].position->w;
+			vs->verts[i].position->w = 1 / vs->verts[i].position->w; 
 		}
 	}
 	void GenerateOrthoMatrix(MATRIX4x4& res) {
