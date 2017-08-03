@@ -23,7 +23,7 @@ void StartRender() {
 	Object *object = new Object(); 
 	pipeline.CreateObject("cube001", "cube", &pos); 
 	pos.y = 0;
-	//pipeline.CreateObject("sphere", "sphere", &pos);
+	pipeline.CreateObject("sphere", "sphere", &pos);
 	pipeline.CreateObject("floor", "cube", &pos);
 	pipeline.LoadPicture();
 	pipeline.RenderAll();  
@@ -155,17 +155,29 @@ void GlKeyCall(unsigned char key, int xmouse, int ymouse) {
 	case 'h':
 		moveSwitch = !moveSwitch;
 		break;
+	case 'u': 
+		pipeline.biaAdjust += 0.0005;
+		break;
+	case 'i':
+		pipeline.biaAdjust -= 0.0005;
+		break;
+	case 'o':
+		pipeline.biasMin += 0.005;
+		break;
+	case 'p':
+		pipeline.biasMin -= 0.005;
+		break;
 
 	} 
 }
 float  t = 0;
 void Mainloop() {
-	t += 5;
+	t += 3;
 	Object* cube = pipeline.GetObject("cube001");
 	Object* floor = pipeline.GetObject("floor");
-//	Object* sphere = pipeline.GetObject("sphere");
+	Object* sphere = pipeline.GetObject("sphere");
 //	floor->SetScale(1, 0.5, 1);
-//	sphere->SetRotation(0,1 ,0,t); 
+	sphere->SetRotation(0,1 ,0,t); 
 	//sphere->SetPosition(0, 0, -2,1); 
 	floor->SetPosition(0, 0, 5, 1);
 //	floor->SetRotation(0, 1, 0, t);

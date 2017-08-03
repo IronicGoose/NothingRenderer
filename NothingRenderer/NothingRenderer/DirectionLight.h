@@ -77,8 +77,8 @@ public:
 		normalizedVector3(&u, &u);
 		normalizedVector3(&v, &v);
 		normalizedVector3(&n, &n);
-		lightDir.x = n.x;
-		lightDir.y = n.y;
+		lightDir.x = -n.x;
+		lightDir.y = -n.y;
 		lightDir.z = -n.z;
 		ma->val[3][0] = -pos->x *u.x - pos->y*u.y - pos->z *u.z;
 		ma->val[3][1] = -pos->x *v.x - pos->y*v.y - pos->z *v.z;
@@ -131,11 +131,11 @@ public:
 DirectionLight::DirectionLight()
 {
 	position = new VECTOR4(); 
-	position->x = 0; position->y = 0; position->z = -10; position->w = 1;  
+	position->x = 0; position->y = 0; position->z = -5; position->w = 1;  
 	SetRotation(1, 0, 0, 0); 
 	nearZ = 0.3f;
 	farZ = 40;
-	int halfLen = 2; 
+	int halfLen = 1; 
 	orthoLeft = -halfLen; orthoRight = halfLen;
 	orthoBottom = -halfLen; orthoTop = halfLen;
 }
